@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
-	"os"
+
+	utils "github.com/HackJack14/SteamSync/Utils"
 )
 
 func main() {
@@ -16,30 +16,5 @@ func main() {
 	}
 	defer conn.Close()
 
-	sendFile(conn)
-}
-
-func sendFile(conn net.Conn) {
-	file, err := os.Open("README.md")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	var fileBytes []byte
-
-	buffer := make([]byte, 1024)
-	for {
-		len, err := file.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				fmt.Println(err)
-			}
-		}
-		buffer = buffer[:len]
-		fileBytes = append(fileBytes, buffer...)
-	}
-
-	conn.Write(fileBytes)
+	utils.SendFile("Test", conn)
 }

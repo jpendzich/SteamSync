@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
-	"os"
 
 	utils "github.com/HackJack14/SteamSync/Utils"
 )
@@ -26,6 +24,6 @@ func main() {
 			continue
 		}
 
-		utils.ReadFile()
+		utils.ReadFile(conn)
 	}
 }

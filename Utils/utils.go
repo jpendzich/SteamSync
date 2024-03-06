@@ -9,7 +9,6 @@ import (
 )
 
 func ReadString(conn net.Conn) string {
-	defer conn.Close()
 	var buffers []byte
 
 	buffer := make([]byte, 1024)
@@ -26,6 +25,15 @@ func ReadString(conn net.Conn) string {
 		buffers = append(buffers, buffer[:length]...)
 	}
 	return string(buffers)
+}
+
+func WriteString(content string, conn net.Conn) {
+	contentBytes := []byte(content)
+
+	_, err := conn.Write(contentBytes)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func ReadFile(conn net.Conn) {
@@ -56,11 +64,10 @@ func ReadFile(conn net.Conn) {
 	}
 	defer file.Close()
 
-	len, err = file.Write(filebytes)
+	_, err = file.Write(filebytes)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(len)
 }
 
 func SendFile(filename string, conn net.Conn) {

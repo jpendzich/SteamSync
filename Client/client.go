@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 
 	utils "github.com/HackJack14/SteamSync/Utils"
 )
@@ -16,5 +17,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	utils.SendFile("Test", conn)
+	utils.WriteString("Test", conn)
+	utils.SendFile(os.Args[1], conn)
 }

@@ -1,70 +1,65 @@
 package utils
 
 import (
+	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
 	"os"
-	"path/filepath"
 )
 
 func ReadString(conn net.Conn) string {
-	var buffers []byte
-
-	buffer := make([]byte, 1024)
-	for {
-		length, err := conn.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Println("Error:", err)
-			break
-		}
-
-		buffers = append(buffers, buffer[:length]...)
+	lengthBytes := make([]byte, 8)
+	_, err := conn.Read(lengthBytes)
+	if err != nil {
+		fmt.Println(err)
 	}
-	return string(buffers)
+	length := binary.LittleEndian.Uint64(lengthBytes)
+
+	contentBytes := make([]byte, length)
+	_, err1 := conn.Read(contentBytes)
+	if err1 != nil {
+		fmt.Println(err1)
+	}
+
+	return string(contentBytes)
 }
 
 func WriteString(content string, conn net.Conn) {
 	contentBytes := []byte(content)
+	var lengthBytes []byte
+	binary.LittleEndian.PutUint64(lengthBytes, uint64(len(contentBytes)))
 
-	_, err := conn.Write(contentBytes)
+	_, err := conn.Write(lengthBytes)
 	if err != nil {
+		fmt.Println(err)
+	}
+	_, err1 := conn.Write(contentBytes)
+	if err1 != nil {
 		fmt.Println(err)
 	}
 }
 
 func ReadFile(conn net.Conn) {
-	var filebytes []byte
-
-	buffer := make([]byte, 1024)
-	len, err := conn.Read(buffer)
+	fileLength := make([]byte, 8)
+	_, err := conn.Read(fileLength)
 	if err != nil {
 		fmt.Println(err)
 	}
-	filename := string(buffer[:len])
-	for {
-		len, err := conn.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				fmt.Println(err)
-			}
-		}
-		buffer = buffer[:len]
-		filebytes = append(filebytes, buffer...)
+
+	length := binary.LittleEndian.Uint64(fileLength)
+	fileBytes := make([]byte, length)
+	_, err1 := conn.Read(fileBytes)
+	if err1 != nil {
+		fmt.Println(err)
 	}
 
-	file, err := os.Create(filepath.Base(filename))
+	file, err := os.Create("TEST.md")
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer file.Close()
 
-	_, err = file.Write(filebytes)
+	_, err = file.Write(fileBytes)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -75,27 +70,27 @@ func SendFile(filename string, conn net.Conn) {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	var filebytes []byte
-
-	buffer := make([]byte, 1024)
-	buffer = []byte(filename)
-	_, err = conn.Write(buffer)
+	fileInfo, err := file.Stat()
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	for {
-		len, err := file.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				fmt.Println(err)
-			}
-		}
-		buffer = buffer[:len]
-		filebytes = append(filebytes, buffer...)
+	fileLength := make([]byte, 8)
+	binary.LittleEndian.PutUint64(fileLength, uint64(fileInfo.Size()))
+	_, err = conn.Write(fileLength)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	filebytes := make([]byte, fileInfo.Size())
+	_, err1 := file.Read(filebytes)
+	if err1 != nil {
+		fmt.Println(err)
+	}
+
+	_, err = conn.Write(filebytes)
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	conn.Write(filebytes)

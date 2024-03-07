@@ -26,7 +26,7 @@ func ReadString(conn net.Conn) string {
 
 func WriteString(content string, conn net.Conn) {
 	contentBytes := []byte(content)
-	var lengthBytes []byte
+	lengthBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(lengthBytes, uint64(len(contentBytes)))
 
 	_, err := conn.Write(lengthBytes)

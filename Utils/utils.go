@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 )
 
 func ReadString(conn net.Conn) string {
@@ -40,6 +41,8 @@ func WriteString(content string, conn net.Conn) {
 }
 
 func ReadFile(conn net.Conn) {
+	filename := ReadString(conn)
+
 	fileLength := make([]byte, 8)
 	_, err := conn.Read(fileLength)
 	if err != nil {
@@ -53,7 +56,7 @@ func ReadFile(conn net.Conn) {
 		fmt.Println(err)
 	}
 
-	file, err := os.Create("TEST.md")
+	file, err := os.Create(filename)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -70,6 +73,9 @@ func SendFile(filename string, conn net.Conn) {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	WriteString(filepath.Base(filename), conn)
+
 	fileInfo, err := file.Stat()
 	if err != nil {
 		fmt.Println(err)

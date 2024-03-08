@@ -24,7 +24,6 @@ func main() {
 			continue
 		}
 
-		fmt.Println(utils.ReadString(conn))
 		utils.ReadFile(conn)
 	}
 }

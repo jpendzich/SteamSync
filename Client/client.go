@@ -17,6 +17,5 @@ func main() {
 	}
 	defer conn.Close()
 
-	utils.WriteString("Test", conn)
 	utils.SendFile(os.Args[1], conn)
 }

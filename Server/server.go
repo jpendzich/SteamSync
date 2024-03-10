@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strconv"
 
 	utils "github.com/HackJack14/SteamSync/Utils"
 )
@@ -24,6 +25,30 @@ func main() {
 			continue
 		}
 
-		utils.ReadFile(conn)
+		request := utils.ReadString(conn)
+
+		switch request {
+		case "UPLOAD":
+			upload(conn)
+		case "DOWNLOAD":
+			download(conn)
+		}
 	}
+}
+
+func upload(conn net.Conn) {
+	defer conn.Close()
+	amountfiles, err := strconv.Atoi(utils.ReadString(conn))
+	if err != nil {
+		fmt.Println(err)
+	}
+	game := utils.ReadString(conn)
+
+	for i := 0; i < amountfiles; i++ {
+		utils.ReadFile(game, conn)
+	}
+}
+
+func download(conn net.Conn) {
+	fmt.Println("DOWNLOAD")
 }

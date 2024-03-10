@@ -40,7 +40,7 @@ func WriteString(content string, conn net.Conn) {
 	}
 }
 
-func ReadFile(conn net.Conn) {
+func ReadFile(path string, conn net.Conn) {
 	filename := ReadString(conn)
 
 	fileLength := make([]byte, 8)
@@ -50,13 +50,15 @@ func ReadFile(conn net.Conn) {
 	}
 
 	length := binary.LittleEndian.Uint64(fileLength)
+	fmt.Println(length)
 	fileBytes := make([]byte, length)
 	_, err1 := conn.Read(fileBytes)
 	if err1 != nil {
 		fmt.Println(err)
 	}
-
-	file, err := os.Create(filename)
+	path = filepath.Join(".", path)
+	os.MkdirAll(path, os.ModePerm)
+	file, err := os.Create(filepath.Join(path, filename))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -98,6 +100,4 @@ func SendFile(filename string, conn net.Conn) {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	conn.Write(filebytes)
 }

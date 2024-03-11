@@ -1,61 +1,30 @@
 package utils
 
 import (
-	"encoding/binary"
+	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
 )
 
 func ReadString(conn net.Conn) string {
-	lengthBytes := make([]byte, 8)
-	_, err := conn.Read(lengthBytes)
+	writer := bytes.NewBufferString("")
+	_, err := io.Copy(writer, conn)
 	if err != nil {
 		fmt.Println(err)
 	}
-	length := binary.LittleEndian.Uint64(lengthBytes)
-
-	contentBytes := make([]byte, length)
-	_, err1 := conn.Read(contentBytes)
-	if err1 != nil {
-		fmt.Println(err1)
-	}
-
-	return string(contentBytes)
+	return string(writer.Bytes())
 }
 
 func WriteString(content string, conn net.Conn) {
-	contentBytes := []byte(content)
-	lengthBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(lengthBytes, uint64(len(contentBytes)))
-
-	_, err := conn.Write(lengthBytes)
-	if err != nil {
-		fmt.Println(err)
-	}
-	_, err1 := conn.Write(contentBytes)
-	if err1 != nil {
-		fmt.Println(err)
-	}
+	reader := bytes.NewBufferString(content)
+	io.Copy(conn, reader)
 }
 
 func ReadFile(path string, conn net.Conn) {
 	filename := ReadString(conn)
-
-	fileLength := make([]byte, 8)
-	_, err := conn.Read(fileLength)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	length := binary.LittleEndian.Uint64(fileLength)
-	fmt.Println(length)
-	fileBytes := make([]byte, length)
-	_, err1 := conn.Read(fileBytes)
-	if err1 != nil {
-		fmt.Println(err)
-	}
 	path = filepath.Join(".", path)
 	os.MkdirAll(path, os.ModePerm)
 	file, err := os.Create(filepath.Join(path, filename))
@@ -64,8 +33,8 @@ func ReadFile(path string, conn net.Conn) {
 	}
 	defer file.Close()
 
-	_, err = file.Write(fileBytes)
-	if err != nil {
+	_, err1 := io.Copy(file, conn)
+	if err1 != nil {
 		fmt.Println(err)
 	}
 }
@@ -78,26 +47,8 @@ func SendFile(filename string, conn net.Conn) {
 
 	WriteString(filepath.Base(filename), conn)
 
-	fileInfo, err := file.Stat()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fileLength := make([]byte, 8)
-	binary.LittleEndian.PutUint64(fileLength, uint64(fileInfo.Size()))
-	_, err = conn.Write(fileLength)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	filebytes := make([]byte, fileInfo.Size())
-	_, err1 := file.Read(filebytes)
+	_, err1 := io.Copy(conn, file)
 	if err1 != nil {
-		fmt.Println(err)
-	}
-
-	_, err = conn.Write(filebytes)
-	if err != nil {
 		fmt.Println(err)
 	}
 }

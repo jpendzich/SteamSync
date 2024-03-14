@@ -1,38 +1,54 @@
 package utils
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 func SerializeFile(packet PFile) []byte {
-
+	bytes := SerializeString(packet.name)
+	bytes = append(bytes, SerializeInt(packet.length)...)
+	bytes = append(bytes, packet.payload...)
+	return bytes
 }
 
 func SerializeString(packet PString) []byte {
-
+	bytes := SerializeInt(packet.length)
+	bytes = append(bytes, []byte(packet.payload)...)
+	return bytes
 }
 
 func SerializeInt(packet PInt) []byte {
-
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, packet.payload)
+	return bytes
 }
 
-func DeserializeFile(bytes []byte) PFile {
+func DeserializeFile(bytes *[]byte) PFile {
 	var packet PFile
-	packet.length = DeserializeInt(bytes[8:]).payload
-	bytes = bytes[:8]
-	packet.name = DeserializeString(bytes).payload
+	newbytes := *bytes
+	packet.name = DeserializeString(&newbytes)
+	packet.length = DeserializeInt(&newbytes)
+	packet.payload = newbytes[:packet.length.payload]
+	newbytes = newbytes[packet.length.payload:]
+	*bytes = newbytes
 	return packet
 }
 
-func DeserializeString(bytes []byte) PString {
+func DeserializeString(bytes *[]byte) PString {
 	var packet PString
-	packet.length = DeserializeInt(bytes[8:]).payload
-	bytes = bytes[:8]
-	packet.payload = string(bytes[:packet.length])
-	bytes = bytes[:packet.length]
+	newbytes := *bytes
+	packet.length = DeserializeInt(&newbytes)
+	packet.payload = string(newbytes[:packet.length.payload])
+	newbytes = newbytes[packet.length.payload:]
+	*bytes = newbytes
 	return packet
 }
 
-func DeserializeInt(bytes []byte) PInt {
+func DeserializeInt(bytes *[]byte) PInt {
 	var packet PInt
-	binary.BigEndian.PutUint64(bytes, uint64(packet.payload))
+	newbytes := *bytes
+	packet.payload = binary.BigEndian.Uint64(newbytes[:8])
+	newbytes = newbytes[8:]
+	*bytes = newbytes
 	return packet
 }

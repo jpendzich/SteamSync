@@ -1,16 +1,16 @@
 package utils
 
 type PFile struct {
-	name    string
-	length  int64
+	name    PString
+	length  PInt
 	payload []byte
 }
 
 type PString struct {
-	length  int64
+	length  PInt
 	payload string
 }
 
 type PInt struct {
-	payload int64
+	payload uint64
 }

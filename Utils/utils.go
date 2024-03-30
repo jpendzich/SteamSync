@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -10,21 +12,39 @@ import (
 )
 
 func ReadString(conn net.Conn) string {
-	writer := bytes.NewBufferString("")
-	_, err := io.Copy(writer, conn)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return string(writer.Bytes())
+	buflen := make([]byte, 8)
+	conn.Read(buflen)
+	var buf bytes.Buffer
+	writer := bufio.NewWriter(&buf)
+	io.CopyN(writer, conn, int64(binary.BigEndian.Uint64(buflen)))
+	buflen = append(buflen, buf.Bytes()...)
+	packet := DeserializeString(&buflen)
+	return packet.payload
 }
 
 func WriteString(content string, conn net.Conn) {
-	reader := bytes.NewBufferString(content)
-	io.Copy(conn, reader)
+	var packet PString
+	packet.payload = content
+	packet.length.payload = uint64(len((content)))
+	conn.Write(SerializeString(packet))
 }
 
 func ReadFile(path string, conn net.Conn) {
 	filename := ReadString(conn)
+
+	fileLength := make([]byte, 8)
+	_, err := conn.Read(fileLength)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	length := binary.LittleEndian.Uint64(fileLength)
+	fmt.Println(length)
+	fileBytes := make([]byte, length)
+	_, err1 := conn.Read(fileBytes)
+	if err1 != nil {
+		fmt.Println(err)
+	}
 	path = filepath.Join(".", path)
 	os.MkdirAll(path, os.ModePerm)
 	file, err := os.Create(filepath.Join(path, filename))
@@ -33,8 +53,8 @@ func ReadFile(path string, conn net.Conn) {
 	}
 	defer file.Close()
 
-	_, err1 := io.Copy(file, conn)
-	if err1 != nil {
+	_, err = file.Write(fileBytes)
+	if err != nil {
 		fmt.Println(err)
 	}
 }
@@ -45,10 +65,20 @@ func SendFile(filename string, conn net.Conn) {
 		fmt.Println(err)
 	}
 
-	WriteString(filepath.Base(filename), conn)
+	fileInfo, err := file.Stat()
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	_, err1 := io.Copy(conn, file)
-	if err1 != nil {
+	var packet PFile
+	packet.name.length.payload = uint64(len(filename))
+	packet.name.payload = filename
+	packet.length.payload = uint64(fileInfo.Size())
+	buf := make([]byte, fileInfo.Size())
+	file.Read(buf)
+	packet.payload = buf
+	_, err = conn.Write(SerializeFile(packet))
+	if err != nil {
 		fmt.Println(err)
 	}
 }

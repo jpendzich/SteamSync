@@ -1,9 +1,10 @@
 package utils
 
 type PFile struct {
-	name    PString
-	length  PInt
-	payload []byte
+	lengthpacket  PInt
+	name          PString
+	lengthpayload PInt
+	payload       []byte
 }
 
 type PString struct {

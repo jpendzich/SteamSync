@@ -47,6 +47,7 @@ func upload(conn net.Conn) {
 	for i := 0; i < amountfiles; i++ {
 		utils.ReadFile(game, conn)
 	}
+	fmt.Println("test")
 }
 
 func download(conn net.Conn) {

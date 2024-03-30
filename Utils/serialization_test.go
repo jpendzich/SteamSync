@@ -83,9 +83,10 @@ func TestSerializeFile(test *testing.T) {
 	binary.BigEndian.PutUint64(buflen, uint64(stat.Size()))
 	buf = append(buf, buflen...)
 	buf = append(buf, filebuf...)
+	packet.lengthpacket.payload = uint64(len(buf))
 	packet.name.length.payload = uint64(len(filename))
 	packet.name.payload = filename
-	packet.length.payload = uint64(stat.Size())
+	packet.lengthpayload.payload = uint64(stat.Size())
 	packet.payload = filebuf
 	output := SerializeFile(packet)
 	if !bytes.Equal(output, buf) {

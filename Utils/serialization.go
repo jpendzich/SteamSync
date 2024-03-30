@@ -5,8 +5,9 @@ import (
 )
 
 func SerializeFile(packet PFile) []byte {
-	bytes := SerializeString(packet.name)
-	bytes = append(bytes, SerializeInt(packet.length)...)
+	bytes := SerializeInt(packet.lengthpacket)
+	bytes = append(bytes, SerializeString(packet.name)...)
+	bytes = append(bytes, SerializeInt(packet.lengthpayload)...)
 	bytes = append(bytes, packet.payload...)
 	return bytes
 }
@@ -26,10 +27,11 @@ func SerializeInt(packet PInt) []byte {
 func DeserializeFile(bytes *[]byte) PFile {
 	var packet PFile
 	newbytes := *bytes
+	packet.lengthpacket = DeserializeInt(&newbytes)
 	packet.name = DeserializeString(&newbytes)
-	packet.length = DeserializeInt(&newbytes)
-	packet.payload = newbytes[:packet.length.payload]
-	newbytes = newbytes[packet.length.payload:]
+	packet.lengthpayload = DeserializeInt(&newbytes)
+	packet.payload = newbytes[:packet.lengthpayload.payload]
+	newbytes = newbytes[packet.lengthpayload.payload:]
 	*bytes = newbytes
 	return packet
 }

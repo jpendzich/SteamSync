@@ -5,42 +5,39 @@ import (
 	"net"
 	"os"
 
-	utils "github.com/HackJack14/SteamSync/Utils"
+	networking "github.com/HackJack14/SteamSync/Networking"
 )
 
 func main() {
-	/*
-		dir := os.Args[2]
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			fmt.Println(err)
-		}
+	request := os.Args[1]
+	dir := os.Args[2]
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		panic(err)
+	}
 
-		var names []string
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				names = append(names, entry.Name())
-			}
+	var names []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			names = append(names, entry.Name())
 		}
-	*/
+	}
 
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		panic(err)
 	}
 	defer conn.Close()
 
-	utils.WriteString(os.Args[1], conn)
+	networking.SerializeString(networking.BuildNetstring(request), conn)
 
-	/*
-		utils.WriteString(strconv.Itoa(len(names)), conn)
-
-		utils.WriteString("Fallout3", conn)
-
-		for _, name := range names {
-			fmt.Println(name)
-			utils.SendFile(filepath.Join(dir, name), conn)
+	networking.SerializeInt(uint64(len(names)), conn)
+	for _, name := range names {
+		fmt.Println(name)
+		file, err := os.Open(dir + "/" + name)
+		if err != nil {
+			panic(err)
 		}
-	*/
+		networking.SerializeFile(networking.BuildNetfile(file), conn)
+	}
 }

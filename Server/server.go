@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
-	"strconv"
+	"os"
 
-	utils "github.com/HackJack14/SteamSync/Utils"
+	networking "github.com/HackJack14/SteamSync/Networking"
 )
 
 func main() {
@@ -25,9 +26,9 @@ func main() {
 			continue
 		}
 
-		request := utils.ReadString(conn)
+		request := networking.DeserializeString(conn)
 
-		switch request {
+		switch request.Actstr {
 		case "UPLOAD":
 			upload(conn)
 		case "DOWNLOAD":
@@ -37,17 +38,18 @@ func main() {
 }
 
 func upload(conn net.Conn) {
-	defer conn.Close()
-	amountfiles, err := strconv.Atoi(utils.ReadString(conn))
-	if err != nil {
-		fmt.Println(err)
-	}
-	game := utils.ReadString(conn)
+	fmt.Println("UPLOAD")
 
-	for i := 0; i < amountfiles; i++ {
-		utils.ReadFile(game, conn)
+	numfiles := networking.DeserializeInt(conn)
+	for i := 0; i < int(numfiles); i++ {
+		netfile := networking.DeserializeFile(conn)
+		file, err := os.Create("./" + netfile.Name.Actstr)
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(file, netfile.Actfile)
+		file.Close()
 	}
-	fmt.Println("test")
 }
 
 func download(conn net.Conn) {

@@ -3,4 +3,4 @@ This program is supposed to replace the Steam Cloud for games that do not suppor
 #TODO
  - Packets and Serialization
  - Copy buffer from Conn to File with io.Copy
- - 
+ - Using bytes.Buffer

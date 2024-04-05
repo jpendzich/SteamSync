@@ -17,7 +17,7 @@ func main() {
 	}
 	request := os.Args[1]
 
-	conn, err := net.Dial("tcp", "localhost:8080")
+	conn, err := net.Dial("tcp", "192.168.178.58:8080")
 	if err != nil {
 		panic(err)
 	}

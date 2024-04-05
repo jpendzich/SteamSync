@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 
 	networking "github.com/HackJack14/SteamSync/Networking"
 )
@@ -40,10 +41,15 @@ func main() {
 func upload(conn net.Conn) {
 	fmt.Println("UPLOAD")
 
+	game := networking.DeserializeString(conn)
+	err := os.Mkdir(game.Actstr, 0755)
+	if err != nil {
+		panic(err)
+	}
 	numfiles := networking.DeserializeInt(conn)
 	for i := 0; i < int(numfiles); i++ {
 		netfile := networking.DeserializeFile(conn)
-		file, err := os.Create("./" + netfile.Name.Actstr)
+		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
 		if err != nil {
 			panic(err)
 		}
@@ -54,4 +60,23 @@ func upload(conn net.Conn) {
 
 func download(conn net.Conn) {
 	fmt.Println("DOWNLOAD")
+
+	game := networking.DeserializeString(conn)
+	dir := filepath.Join(".", game.Actstr)
+	_, err := os.Stat(dir)
+	if os.IsNotExist(err) {
+		return
+	}
+
+	names, err := os.ReadDir(dir)
+	networking.SerializeInt(uint64(len(names)), conn)
+	for _, name := range names {
+		if !name.IsDir() {
+			file, err := os.Open(filepath.Join(dir, name.Name()))
+			if err != nil {
+				panic(err)
+			}
+			networking.SerializeFile(networking.BuildNetfile(file), conn)
+		}
+	}
 }

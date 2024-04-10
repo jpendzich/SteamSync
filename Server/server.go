@@ -77,6 +77,7 @@ func download(conn net.Conn) {
 				panic(err)
 			}
 			networking.SerializeFile(networking.BuildNetfile(file), conn)
+			file.Close()
 		}
 	}
 }

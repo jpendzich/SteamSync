@@ -16,6 +16,8 @@ func main() {
 		return
 	}
 	request := os.Args[1]
+	game := os.Args[2]
+	dir := os.Args[3]
 
 	conn, err := net.Dial("tcp", "192.168.178.58:8080")
 	if err != nil {
@@ -25,16 +27,14 @@ func main() {
 
 	switch request {
 	case "UPLOAD":
-		upload(conn)
+		upload(conn, game, dir)
 	case "DOWNLOAD":
-		download(conn)
+		download(conn, game, dir)
 	}
 
 }
 
-func upload(conn net.Conn) {
-	game := os.Args[2]
-	dir := os.Args[3]
+func upload(conn net.Conn, game string, dir string) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		panic(err)
@@ -60,10 +60,7 @@ func upload(conn net.Conn) {
 	}
 }
 
-func download(conn net.Conn) {
-	game := os.Args[2]
-	dir := os.Args[3]
-
+func download(conn net.Conn, game string, dir string) {
 	networking.SerializeString(networking.BuildNetstring("DOWNLOAD"), conn)
 	networking.SerializeString(networking.BuildNetstring(game), conn)
 

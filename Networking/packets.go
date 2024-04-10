@@ -11,11 +11,13 @@ type Netfile struct {
 	Name    Netstring
 	Length  uint64
 	Actfile *bytes.Buffer
+	Error   bool
 }
 
 type Netstring struct {
 	Length uint64
 	Actstr string
+	Error  bool
 }
 
 func BuildNetstring(str string) Netstring {
@@ -39,4 +41,16 @@ func BuildNetfile(file *os.File) Netfile {
 		panic(err)
 	}
 	return netfile
+}
+
+func BoolToByte(b bool) byte {
+	if b {
+		return 1
+	} else {
+		return 0
+	}
+}
+
+func ByteToBool(b byte) bool {
+	return b == 1
 }

@@ -11,10 +11,13 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 4 {
-		fmt.Println("Insufficient number of arguments")
+	if len(os.Args) == 1 {
+		fmt.Println("Commands:")
+		fmt.Println("\tUPLOAD <Game> <Directory with Savefiles>")
+		fmt.Println("\tDOWNLOAD <Game> <Where to save the Savefiles>")
 		return
 	}
+
 	request := os.Args[1]
 	game := os.Args[2]
 	dir := os.Args[3]

@@ -3,5 +3,3 @@
 *.settings
 server
 client
-*.sh
-*.bat

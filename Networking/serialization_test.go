@@ -100,7 +100,6 @@ func TestDeserializeInt(test *testing.T) {
 	buf := bytes.NewBuffer(numasbytes)
 	result1 := DeserializeInt(buf)
 
-	buf = bytes.NewBuffer(numasbytes)
 	result2 := binary.BigEndian.Uint64(numasbytes)
 
 	if result1 != result2 {

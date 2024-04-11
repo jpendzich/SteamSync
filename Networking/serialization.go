@@ -10,11 +10,13 @@ func SerializeFile(file Netfile, writer io.Writer) {
 	SerializeString(file.Name, writer)
 	SerializeInt(file.Length, writer)
 	writer.Write(file.Actfile.Bytes())
+	writer.Write(BoolToByte(file.Error))
 }
 
 func SerializeString(str Netstring, writer io.Writer) {
 	SerializeInt(str.Length, writer)
 	writer.Write([]byte(str.Actstr))
+	writer.Write(BoolToByte(str.Error))
 }
 
 func SerializeInt(value uint64, writer io.Writer) {
@@ -32,6 +34,9 @@ func DeserializeFile(reader io.Reader) Netfile {
 	if err != nil {
 		panic(err)
 	}
+	buf := make([]byte, 1)
+	reader.Read(buf)
+	file.Error = ByteToBool(buf)
 	return file
 }
 
@@ -41,6 +46,9 @@ func DeserializeString(reader io.Reader) Netstring {
 	buf := make([]byte, str.Length)
 	reader.Read(buf)
 	str.Actstr = string(buf)
+	buf = make([]byte, 1)
+	reader.Read(buf)
+	str.Error = ByteToBool(buf)
 	return str
 }
 

@@ -43,14 +43,16 @@ func BuildNetfile(file *os.File) Netfile {
 	return netfile
 }
 
-func BoolToByte(b bool) byte {
+func BoolToByte(b bool) []byte {
+	buf := make([]byte, 1)
 	if b {
-		return 1
+		buf[0] = 1
 	} else {
-		return 0
+		buf[0] = 0
 	}
+	return buf
 }
 
-func ByteToBool(b byte) bool {
-	return b == 1
+func ByteToBool(b []byte) bool {
+	return b[0] == 1
 }

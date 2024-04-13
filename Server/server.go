@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", "192.168.178.58:8080")
+	listener, err := net.Listen("tcp", "localhost:8080")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -69,14 +69,20 @@ func download(conn net.Conn) {
 	}
 
 	names, err := os.ReadDir(dir)
+	if err != nil {
+		panic(err)
+	}
 	networking.SerializeInt(uint64(len(names)), conn)
 	for _, name := range names {
 		if !name.IsDir() {
+			hasError := false
 			file, err := os.Open(filepath.Join(dir, name.Name()))
 			if err != nil {
-				panic(err)
+				hasError = true
 			}
-			networking.SerializeFile(networking.BuildNetfile(file), conn)
+			netfile := networking.BuildNetfile(file)
+			netfile.Error = hasError
+			networking.SerializeFile(netfile, conn)
 			file.Close()
 		}
 	}

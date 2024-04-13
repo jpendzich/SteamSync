@@ -37,6 +37,9 @@ func DeserializeFile(reader io.Reader) Netfile {
 	buf := make([]byte, 1)
 	reader.Read(buf)
 	file.Error = ByteToBool(buf)
+	if file.Error {
+		panic("An error occurred on the other side of the connection")
+	}
 	return file
 }
 
@@ -49,6 +52,9 @@ func DeserializeString(reader io.Reader) Netstring {
 	buf = make([]byte, 1)
 	reader.Read(buf)
 	str.Error = ByteToBool(buf)
+	if str.Error {
+		panic("An error occurred on the other side of the connection")
+	}
 	return str
 }
 

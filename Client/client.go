@@ -22,7 +22,7 @@ func main() {
 	game := os.Args[2]
 	dir := os.Args[3]
 
-	conn, err := net.Dial("tcp", "192.168.178.58:8080")
+	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
 		panic(err)
 	}
@@ -55,15 +55,19 @@ func upload(conn net.Conn, game string, dir string) {
 	networking.SerializeInt(uint64(len(saves)), conn)
 	for _, save := range saves {
 		fmt.Println(save)
+		hasError := false
 		file, err := os.Open(dir + "/" + save)
 		if err != nil {
-			panic(err)
+			hasError = true
 		}
-		networking.SerializeFile(networking.BuildNetfile(file), conn)
+		netfile := networking.BuildNetfile(file)
+		netfile.Error = hasError
+		networking.SerializeFile(netfile, conn)
 	}
 }
 
 func download(conn net.Conn, game string, dir string) {
+	fmt.Println(game + dir)
 	networking.SerializeString(networking.BuildNetstring("DOWNLOAD"), conn)
 	networking.SerializeString(networking.BuildNetstring(game), conn)
 

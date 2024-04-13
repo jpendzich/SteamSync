@@ -27,7 +27,11 @@ func main() {
 			continue
 		}
 
-		request := networking.DeserializeString(conn)
+		request, err := networking.DeserializeString(conn)
+		if err != nil {
+			fmt.Println(err.Error() + ": connection closed gracefully")
+			continue
+		}
 
 		switch request.Actstr {
 		case "UPLOAD":
@@ -39,16 +43,25 @@ func main() {
 }
 
 func upload(conn net.Conn) {
+	defer conn.Close()
 	fmt.Println("UPLOAD")
 
-	game := networking.DeserializeString(conn)
-	err := os.Mkdir(game.Actstr, 0755)
+	game, err := networking.DeserializeString(conn)
+	if err != nil {
+		fmt.Println(err.Error() + ": connection closed gracefully")
+		return
+	}
+	err = os.Mkdir(game.Actstr, 0755)
 	if err != nil {
 		panic(err)
 	}
 	numfiles := networking.DeserializeInt(conn)
 	for i := 0; i < int(numfiles); i++ {
-		netfile := networking.DeserializeFile(conn)
+		netfile, err := networking.DeserializeFile(conn)
+		if err != nil {
+			fmt.Println(err.Error() + ": connection closed gracefully")
+			return
+		}
 		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
 		if err != nil {
 			panic(err)
@@ -59,11 +72,16 @@ func upload(conn net.Conn) {
 }
 
 func download(conn net.Conn) {
+	defer conn.Close()
 	fmt.Println("DOWNLOAD")
 
-	game := networking.DeserializeString(conn)
+	game, err := networking.DeserializeString(conn)
+	if err != nil {
+		fmt.Println(err.Error() + ": connection closed gracefully")
+		return
+	}
 	dir := filepath.Join(".", game.Actstr)
-	_, err := os.Stat(dir)
+	_, err = os.Stat(dir)
 	if os.IsNotExist(err) {
 		return
 	}

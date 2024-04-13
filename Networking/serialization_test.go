@@ -115,7 +115,7 @@ func TestDeserializeString(test *testing.T) {
 	stringasbytes := []byte(teststring)
 	buf := bytes.NewBuffer(numasbytes)
 	buf.Write(stringasbytes)
-	result1 := DeserializeString(buf)
+	result1, _ := DeserializeString(buf)
 
 	var result2 Netstring
 	result2.Length = binary.BigEndian.Uint64(numasbytes)
@@ -150,7 +150,7 @@ func TestDeserializationFile(test *testing.T) {
 	io.Copy(buf, testfile)
 	testfile.Close()
 	buf.Write(make([]byte, 1))
-	result1 := DeserializeFile(buf)
+	result1, _ := DeserializeFile(buf)
 
 	var result2 Netfile
 	result2.Name.Length = binary.BigEndian.Uint64(strlenasbytes)

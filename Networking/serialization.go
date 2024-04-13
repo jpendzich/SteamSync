@@ -3,6 +3,7 @@ package networking
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -25,12 +26,13 @@ func SerializeInt(value uint64, writer io.Writer) {
 	writer.Write(buf)
 }
 
-func DeserializeFile(reader io.Reader) Netfile {
+func DeserializeFile(reader io.Reader) (Netfile, error) {
 	var file Netfile
-	file.Name = DeserializeString(reader)
+	var err error
+	file.Name, err = DeserializeString(reader)
 	file.Length = DeserializeInt(reader)
 	file.Actfile = bytes.NewBuffer(nil)
-	_, err := io.CopyN(file.Actfile, reader, int64(file.Length))
+	_, err = io.CopyN(file.Actfile, reader, int64(file.Length))
 	if err != nil {
 		panic(err)
 	}
@@ -38,13 +40,14 @@ func DeserializeFile(reader io.Reader) Netfile {
 	reader.Read(buf)
 	file.Error = ByteToBool(buf)
 	if file.Error {
-		panic("An error occurred on the other side of the connection")
+		err = errors.New("an error occurred on the other side of the connection")
 	}
-	return file
+	return file, err
 }
 
-func DeserializeString(reader io.Reader) Netstring {
+func DeserializeString(reader io.Reader) (Netstring, error) {
 	var str Netstring
+	var err error
 	str.Length = DeserializeInt(reader)
 	buf := make([]byte, str.Length)
 	reader.Read(buf)
@@ -53,9 +56,9 @@ func DeserializeString(reader io.Reader) Netstring {
 	reader.Read(buf)
 	str.Error = ByteToBool(buf)
 	if str.Error {
-		panic("An error occurred on the other side of the connection")
+		err = errors.New("an error occurred on the other side of the connection")
 	}
-	return str
+	return str, err
 }
 
 func DeserializeInt(reader io.Reader) uint64 {

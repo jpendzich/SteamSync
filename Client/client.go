@@ -73,7 +73,11 @@ func download(conn net.Conn, game string, dir string) {
 
 	numsaves := networking.DeserializeInt(conn)
 	for i := 0; i < int(numsaves); i++ {
-		netfile := networking.DeserializeFile(conn)
+		netfile, err := networking.DeserializeFile(conn)
+		if err != nil {
+			fmt.Println(err.Error() + ": connection closed gracefully")
+			return
+		}
 		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
 		if err != nil {
 			panic(err)

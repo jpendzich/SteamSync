@@ -51,8 +51,13 @@ func upload(conn net.Conn) {
 		fmt.Println(err.Error() + ": connection closed gracefully")
 		return
 	}
-	err = os.Mkdir(game.Actstr, 0755)
-	if err != nil {
+	_, err = os.Stat(game.Actstr)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(game.Actstr, 0755)
+		if err != nil {
+			panic(err)
+		}
+	} else if err != nil {
 		panic(err)
 	}
 	numfiles := networking.DeserializeInt(conn)

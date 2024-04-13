@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -52,7 +53,7 @@ func upload(conn net.Conn) {
 		return
 	}
 	_, err = os.Stat(game.Actstr)
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		err = os.Mkdir(game.Actstr, 0755)
 		if err != nil {
 			panic(err)

@@ -12,7 +12,12 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", "localhost:8080")
+	if len(os.Args) == 1 {
+		fmt.Println("Commands:")
+		fmt.Println("\t<IP-Address>")
+	}
+	ipaddress := os.Args[1]
+	listener, err := net.Listen("tcp", ipaddress+":8080")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return

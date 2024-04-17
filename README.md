@@ -6,3 +6,4 @@ This program is supposed to replace the Steam Cloud for games that do not suppor
  - IP-Address as commandlineargument
  - Help argument
  - Errorhandling over network
+ - Logging

@@ -21,7 +21,7 @@ func main() {
 	ipaddress := os.Args[1]
 	listener, err := net.Listen("tcp", ipaddress+":8080")
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Fatalf("%s: connection closed", err)
 		return
 	}
 	defer listener.Close()
@@ -31,7 +31,7 @@ func main() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("%s: connection close gracefully", err)
+			log.Printf("%s: failed accepting connection", err)
 			continue
 		}
 
@@ -56,7 +56,7 @@ func upload(conn net.Conn) {
 
 	game, err := networking.DeserializeString(conn)
 	if err != nil {
-		log.Printf("%s: connection closed gracefully\n", err)
+		log.Printf("%s: connection closed\n", err)
 		return
 	}
 	_, err = os.Stat(game.Actstr)
@@ -64,9 +64,11 @@ func upload(conn net.Conn) {
 		err = os.Mkdir(game.Actstr, 0755)
 		if err != nil {
 			log.Printf("%s: failed to create direcotry\n", err)
+			return
 		}
 	} else if err != nil {
 		log.Printf("%s: failed to retrieve directory info\n", err)
+		return
 	}
 	numfiles := networking.DeserializeInt(conn)
 	for i := 0; i < int(numfiles); i++ {
@@ -78,6 +80,7 @@ func upload(conn net.Conn) {
 		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
 		if err != nil {
 			log.Printf("%s: failed to create file\n", err)
+			return
 		}
 		io.Copy(file, netfile.Actfile)
 		file.Close()
@@ -90,29 +93,30 @@ func download(conn net.Conn) {
 
 	game, err := networking.DeserializeString(conn)
 	if err != nil {
-		log.Printf("%s: connection closed gracefully\n", err)
+		log.Printf("%s: connection closed\n", err)
 		return
 	}
 	dir := filepath.Join(".", game.Actstr)
 	_, err = os.Stat(dir)
 	if os.IsNotExist(err) {
+		log.Printf("%s: directory does not exist\n", err)
 		return
 	}
 
 	names, err := os.ReadDir(dir)
 	if err != nil {
 		log.Printf("%s: failed to read directory\n", err)
+		return
 	}
 	networking.SerializeInt(uint64(len(names)), conn)
 	for _, name := range names {
 		if !name.IsDir() {
-			hasError := false
 			file, err := os.Open(filepath.Join(dir, name.Name()))
 			if err != nil {
-				hasError = true
+				log.Printf("%s: failed to open file\n", err)
+				return
 			}
 			netfile := networking.BuildNetfile(file)
-			netfile.Error = hasError
 			networking.SerializeFile(netfile, conn)
 			file.Close()
 		}

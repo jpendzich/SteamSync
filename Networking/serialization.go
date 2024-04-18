@@ -7,30 +7,30 @@ import (
 	"io"
 )
 
-func SerializeFile(file Netfile, writer io.Writer) {
-	SerializeString(file.Name, writer)
-	SerializeInt(file.Length, writer)
+func WriteFile(file Netfile, writer io.Writer) {
+	WriteString(file.Name, writer)
+	WriteInt(file.Length, writer)
 	writer.Write(file.Actfile.Bytes())
 	writer.Write(BoolToByte(file.Error))
 }
 
-func SerializeString(str Netstring, writer io.Writer) {
-	SerializeInt(str.Length, writer)
+func WriteString(str Netstring, writer io.Writer) {
+	WriteInt(str.Length, writer)
 	writer.Write([]byte(str.Actstr))
 	writer.Write(BoolToByte(str.Error))
 }
 
-func SerializeInt(value uint64, writer io.Writer) {
+func WriteInt(value uint64, writer io.Writer) {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, value)
 	writer.Write(buf)
 }
 
-func DeserializeFile(reader io.Reader) (Netfile, error) {
+func ReadFile(reader io.Reader) (Netfile, error) {
 	var file Netfile
 	var err error
-	file.Name, err = DeserializeString(reader)
-	file.Length = DeserializeInt(reader)
+	file.Name, err = ReadString(reader)
+	file.Length = ReadInt(reader)
 	file.Actfile = bytes.NewBuffer(nil)
 	_, err = io.CopyN(file.Actfile, reader, int64(file.Length))
 	if err != nil {
@@ -45,10 +45,10 @@ func DeserializeFile(reader io.Reader) (Netfile, error) {
 	return file, err
 }
 
-func DeserializeString(reader io.Reader) (Netstring, error) {
+func ReadString(reader io.Reader) (Netstring, error) {
 	var str Netstring
 	var err error
-	str.Length = DeserializeInt(reader)
+	str.Length = ReadInt(reader)
 	buf := make([]byte, str.Length)
 	reader.Read(buf)
 	str.Actstr = string(buf)
@@ -61,7 +61,7 @@ func DeserializeString(reader io.Reader) (Netstring, error) {
 	return str, err
 }
 
-func DeserializeInt(reader io.Reader) uint64 {
+func ReadInt(reader io.Reader) uint64 {
 	buf := make([]byte, 8)
 	reader.Read(buf)
 	return binary.BigEndian.Uint64(buf)

@@ -13,16 +13,17 @@ import (
 func main() {
 	if len(os.Args) == 1 {
 		fmt.Println("Commands:")
-		fmt.Println("\tUPLOAD <Game> <Directory with Savefiles>")
-		fmt.Println("\tDOWNLOAD <Game> <Where to save the Savefiles>")
+		fmt.Println("\tUPLOAD <IPAddress> <Game> <Directory with Savefiles>")
+		fmt.Println("\tDOWNLOAD <IPAddress> <Game> <Where to save the Savefiles>")
 		return
 	}
 
-	request := os.Args[1]
-	game := os.Args[2]
-	dir := os.Args[3]
+	ipadress := os.Args[1]
+	request := os.Args[2]
+	game := os.Args[3]
+	dir := os.Args[4]
 
-	conn, err := net.Dial("tcp", "localhost:8080")
+	conn, err := net.Dial("tcp", ipadress+":8080")
 	if err != nil {
 		panic(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -25,18 +26,18 @@ func main() {
 	}
 	defer listener.Close()
 
-	fmt.Println("Server is listening on port 8080")
+	log.Printf("server started listening: %s:8080\n", ipaddress)
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Error:", err)
+			log.Printf("%s: connection close gracefully", err)
 			continue
 		}
 
 		request, err := networking.DeserializeString(conn)
 		if err != nil {
-			fmt.Println(err.Error() + ": connection closed gracefully")
+			log.Printf("%s: connection closed gracefully\n", err.Error())
 			continue
 		}
 
@@ -51,32 +52,32 @@ func main() {
 
 func upload(conn net.Conn) {
 	defer conn.Close()
-	fmt.Println("UPLOAD")
+	log.Println("starting upload")
 
 	game, err := networking.DeserializeString(conn)
 	if err != nil {
-		fmt.Println(err.Error() + ": connection closed gracefully")
+		log.Printf("%s: connection closed gracefully\n", err)
 		return
 	}
 	_, err = os.Stat(game.Actstr)
 	if errors.Is(err, os.ErrNotExist) {
 		err = os.Mkdir(game.Actstr, 0755)
 		if err != nil {
-			panic(err)
+			log.Printf("%s: failed to create direcotry\n", err)
 		}
 	} else if err != nil {
-		panic(err)
+		log.Printf("%s: failed to retrieve directory info\n", err)
 	}
 	numfiles := networking.DeserializeInt(conn)
 	for i := 0; i < int(numfiles); i++ {
 		netfile, err := networking.DeserializeFile(conn)
 		if err != nil {
-			fmt.Println(err.Error() + ": connection closed gracefully")
+			log.Printf("%s: connection closed gracefully\n", err)
 			return
 		}
 		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
 		if err != nil {
-			panic(err)
+			log.Printf("%s: failed to create file\n", err)
 		}
 		io.Copy(file, netfile.Actfile)
 		file.Close()
@@ -85,11 +86,11 @@ func upload(conn net.Conn) {
 
 func download(conn net.Conn) {
 	defer conn.Close()
-	fmt.Println("DOWNLOAD")
+	log.Println("DOWNLOAD")
 
 	game, err := networking.DeserializeString(conn)
 	if err != nil {
-		fmt.Println(err.Error() + ": connection closed gracefully")
+		log.Printf("%s: connection closed gracefully\n", err)
 		return
 	}
 	dir := filepath.Join(".", game.Actstr)
@@ -100,7 +101,7 @@ func download(conn net.Conn) {
 
 	names, err := os.ReadDir(dir)
 	if err != nil {
-		panic(err)
+		log.Printf("%s: failed to read directory\n", err)
 	}
 	networking.SerializeInt(uint64(len(names)), conn)
 	for _, name := range names {

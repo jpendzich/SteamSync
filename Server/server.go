@@ -15,6 +15,7 @@ func main() {
 	if len(os.Args) == 1 {
 		fmt.Println("Commands:")
 		fmt.Println("\t<IP-Address>")
+		return
 	}
 	ipaddress := os.Args[1]
 	listener, err := net.Listen("tcp", ipaddress+":8080")

@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-func TestSerializeInt(test *testing.T) {
+func TestWriteInt(test *testing.T) {
 	testint := 42
 
 	buf1 := bytes.NewBuffer(nil)
-	SerializeInt(uint64(testint), buf1)
+	WriteInt(uint64(testint), buf1)
 
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(testint))
@@ -24,7 +24,7 @@ func TestSerializeInt(test *testing.T) {
 	}
 }
 
-func TestSerializeString(test *testing.T) {
+func TestWriteString(test *testing.T) {
 	teststring := "This is a test string"
 
 	buf1 := bytes.NewBuffer(nil)
@@ -32,7 +32,7 @@ func TestSerializeString(test *testing.T) {
 	str.Actstr = teststring
 	str.Length = uint64(len(str.Actstr))
 	str.Error = false
-	SerializeString(str, buf1)
+	WriteString(str, buf1)
 
 	buf2 := bytes.NewBuffer(nil)
 	numasbytes := make([]byte, 8)
@@ -46,7 +46,7 @@ func TestSerializeString(test *testing.T) {
 	}
 }
 
-func TestSerializeFile(test *testing.T) {
+func TestWriteFile(test *testing.T) {
 	testfilename := "test.txt"
 
 	var file Netfile
@@ -68,7 +68,7 @@ func TestSerializeFile(test *testing.T) {
 	buf1 := bytes.NewBuffer(nil)
 	testfile.Close()
 	file.Error = false
-	SerializeFile(file, buf1)
+	WriteFile(file, buf1)
 
 	buf2 := bytes.NewBuffer(nil)
 	numasbytes := make([]byte, 8)
@@ -92,13 +92,13 @@ func TestSerializeFile(test *testing.T) {
 	}
 }
 
-func TestDeserializeInt(test *testing.T) {
+func TestReadInt(test *testing.T) {
 	testint := 42
 
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(testint))
 	buf := bytes.NewBuffer(numasbytes)
-	result1 := DeserializeInt(buf)
+	result1 := ReadInt(buf)
 
 	result2 := binary.BigEndian.Uint64(numasbytes)
 
@@ -107,7 +107,7 @@ func TestDeserializeInt(test *testing.T) {
 	}
 }
 
-func TestDeserializeString(test *testing.T) {
+func TestReadString(test *testing.T) {
 	teststring := "This is a teststring"
 
 	numasbytes := make([]byte, 8)
@@ -115,7 +115,7 @@ func TestDeserializeString(test *testing.T) {
 	stringasbytes := []byte(teststring)
 	buf := bytes.NewBuffer(numasbytes)
 	buf.Write(stringasbytes)
-	result1, _ := DeserializeString(buf)
+	result1, _ := ReadString(buf)
 
 	var result2 Netstring
 	result2.Length = binary.BigEndian.Uint64(numasbytes)
@@ -127,7 +127,7 @@ func TestDeserializeString(test *testing.T) {
 	}
 }
 
-func TestDeserializationFile(test *testing.T) {
+func TestReadFile(test *testing.T) {
 	testfilename := "test.txt"
 
 	strlenasbytes := make([]byte, 8)
@@ -150,7 +150,7 @@ func TestDeserializationFile(test *testing.T) {
 	io.Copy(buf, testfile)
 	testfile.Close()
 	buf.Write(make([]byte, 1))
-	result1, _ := DeserializeFile(buf)
+	result1, _ := ReadFile(buf)
 
 	var result2 Netfile
 	result2.Name.Length = binary.BigEndian.Uint64(strlenasbytes)

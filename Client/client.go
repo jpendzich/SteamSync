@@ -14,8 +14,8 @@ import (
 func main() {
 	if len(os.Args) == 1 {
 		fmt.Println("Commands:")
-		fmt.Println("\tUPLOAD <IPAddress> <Game> <Directory with Savefiles>")
-		fmt.Println("\tDOWNLOAD <IPAddress> <Game> <Where to save the Savefiles>")
+		fmt.Println("\t<IPAddress> UPLOAD <Game> <Directory with Savefiles>")
+		fmt.Println("\t<IPAddress> DOWNLOAD <Game> <Where to save the Savefiles>")
 		return
 	}
 
@@ -52,9 +52,9 @@ func upload(conn net.Conn, game string, dir string) {
 		}
 	}
 
-	networking.SerializeString(networking.BuildNetstring("UPLOAD"), conn)
-	networking.SerializeString(networking.BuildNetstring(game), conn)
-	networking.SerializeInt(uint64(len(saves)), conn)
+	networking.WriteString(networking.BuildNetstring("UPLOAD"), conn)
+	networking.WriteString(networking.BuildNetstring(game), conn)
+	networking.WriteInt(uint64(len(saves)), conn)
 	for _, save := range saves {
 		fmt.Println(save)
 		file, err := os.Open(dir + "/" + save)
@@ -62,18 +62,18 @@ func upload(conn net.Conn, game string, dir string) {
 			log.Fatalf("%s: failed to open file\n", err)
 		}
 		netfile := networking.BuildNetfile(file)
-		networking.SerializeFile(netfile, conn)
+		networking.WriteFile(netfile, conn)
 	}
 }
 
 func download(conn net.Conn, game string, dir string) {
 	fmt.Println(game + dir)
-	networking.SerializeString(networking.BuildNetstring("DOWNLOAD"), conn)
-	networking.SerializeString(networking.BuildNetstring(game), conn)
+	networking.WriteString(networking.BuildNetstring("DOWNLOAD"), conn)
+	networking.WriteString(networking.BuildNetstring(game), conn)
 
-	numsaves := networking.DeserializeInt(conn)
+	numsaves := networking.ReadInt(conn)
 	for i := 0; i < int(numsaves); i++ {
-		netfile, err := networking.DeserializeFile(conn)
+		netfile, err := networking.ReadFile(conn)
 		if err != nil {
 			log.Fatalf("%s: connection closed gracefully\n", err)
 		}

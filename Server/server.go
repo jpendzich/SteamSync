@@ -35,7 +35,7 @@ func main() {
 			continue
 		}
 
-		request, err := networking.DeserializeString(conn)
+		request, err := networking.ReadString(conn)
 		if err != nil {
 			log.Printf("%s: connection closed gracefully\n", err.Error())
 			continue
@@ -54,7 +54,7 @@ func upload(conn net.Conn) {
 	defer conn.Close()
 	log.Println("starting upload")
 
-	game, err := networking.DeserializeString(conn)
+	game, err := networking.ReadString(conn)
 	if err != nil {
 		log.Printf("%s: connection closed\n", err)
 		return
@@ -70,9 +70,9 @@ func upload(conn net.Conn) {
 		log.Printf("%s: failed to retrieve directory info\n", err)
 		return
 	}
-	numfiles := networking.DeserializeInt(conn)
+	numfiles := networking.ReadInt(conn)
 	for i := 0; i < int(numfiles); i++ {
-		netfile, err := networking.DeserializeFile(conn)
+		netfile, err := networking.ReadFile(conn)
 		if err != nil {
 			log.Printf("%s: connection closed gracefully\n", err)
 			return
@@ -91,7 +91,7 @@ func download(conn net.Conn) {
 	defer conn.Close()
 	log.Println("DOWNLOAD")
 
-	game, err := networking.DeserializeString(conn)
+	game, err := networking.ReadString(conn)
 	if err != nil {
 		log.Printf("%s: connection closed\n", err)
 		return
@@ -108,7 +108,7 @@ func download(conn net.Conn) {
 		log.Printf("%s: failed to read directory\n", err)
 		return
 	}
-	networking.SerializeInt(uint64(len(names)), conn)
+	networking.WriteInt(uint64(len(names)), conn)
 	for _, name := range names {
 		if !name.IsDir() {
 			file, err := os.Open(filepath.Join(dir, name.Name()))
@@ -117,7 +117,7 @@ func download(conn net.Conn) {
 				return
 			}
 			netfile := networking.BuildNetfile(file)
-			networking.SerializeFile(netfile, conn)
+			networking.WriteFile(netfile, conn)
 			file.Close()
 		}
 	}

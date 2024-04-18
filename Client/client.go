@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -25,7 +26,7 @@ func main() {
 
 	conn, err := net.Dial("tcp", ipadress+":8080")
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s: failed to dial connection\n", err)
 	}
 	defer conn.Close()
 
@@ -41,7 +42,7 @@ func main() {
 func upload(conn net.Conn, game string, dir string) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s: failed to read dir\n", err)
 	}
 
 	var saves []string
@@ -56,13 +57,11 @@ func upload(conn net.Conn, game string, dir string) {
 	networking.SerializeInt(uint64(len(saves)), conn)
 	for _, save := range saves {
 		fmt.Println(save)
-		hasError := false
 		file, err := os.Open(dir + "/" + save)
 		if err != nil {
-			hasError = true
+			log.Fatalf("%s: failed to open file\n", err)
 		}
 		netfile := networking.BuildNetfile(file)
-		netfile.Error = hasError
 		networking.SerializeFile(netfile, conn)
 	}
 }
@@ -76,12 +75,11 @@ func download(conn net.Conn, game string, dir string) {
 	for i := 0; i < int(numsaves); i++ {
 		netfile, err := networking.DeserializeFile(conn)
 		if err != nil {
-			fmt.Println(err.Error() + ": connection closed gracefully")
-			return
+			log.Fatalf("%s: connection closed gracefully\n", err)
 		}
 		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
 		if err != nil {
-			panic(err)
+			log.Fatalf("%s: failed to create file\n", err)
 		}
 		io.Copy(file, netfile.Actfile)
 		file.Close()

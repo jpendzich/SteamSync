@@ -29,9 +29,11 @@ func main() {
 	log.Printf("server started listening: %s:8080\n", ipaddress)
 
 	for {
+		log.Println("awaiting connection")
 		conn, err := listener.Accept()
+		log.Printf("accepted connection: %s\n", conn.RemoteAddr())
 		if err != nil {
-			log.Printf("%s: failed accepting connection", err)
+			log.Println(err)
 			continue
 		}
 
@@ -52,7 +54,7 @@ func main() {
 
 func upload(conn net.Conn) {
 	defer conn.Close()
-	log.Println("starting upload")
+	log.Println("started receiving upload")
 
 	game, err := networking.ReadString(conn)
 	if err != nil {
@@ -63,14 +65,17 @@ func upload(conn net.Conn) {
 	if errors.Is(err, os.ErrNotExist) {
 		err = os.Mkdir(game.Actstr, 0755)
 		if err != nil {
-			log.Printf("%s: failed to create direcotry\n", err)
+			log.Println(err)
 			return
 		}
 	} else if err != nil {
-		log.Printf("%s: failed to retrieve directory info\n", err)
+		log.Println(err)
 		return
 	}
-	numfiles := networking.ReadInt(conn)
+	numfiles, err := networking.ReadInt(conn)
+	if err != nil {
+		log.Fatalf("%s: connection closed\n", err)
+	}
 	for i := 0; i < int(numfiles); i++ {
 		netfile, err := networking.ReadFile(conn)
 		if err != nil {
@@ -79,33 +84,34 @@ func upload(conn net.Conn) {
 		}
 		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
 		if err != nil {
-			log.Printf("%s: failed to create file\n", err)
+			log.Println(err)
 			return
 		}
 		io.Copy(file, netfile.Actfile)
 		file.Close()
 	}
+	log.Println("stopped receiving upload")
 }
 
 func download(conn net.Conn) {
 	defer conn.Close()
-	log.Println("DOWNLOAD")
+	log.Println("started providing download")
 
 	game, err := networking.ReadString(conn)
 	if err != nil {
-		log.Printf("%s: connection closed\n", err)
+		log.Println(err)
 		return
 	}
 	dir := filepath.Join(".", game.Actstr)
 	_, err = os.Stat(dir)
 	if os.IsNotExist(err) {
-		log.Printf("%s: directory does not exist\n", err)
+		log.Println(err)
 		return
 	}
 
 	names, err := os.ReadDir(dir)
 	if err != nil {
-		log.Printf("%s: failed to read directory\n", err)
+		log.Println(err)
 		return
 	}
 	networking.WriteInt(uint64(len(names)), conn)
@@ -113,7 +119,7 @@ func download(conn net.Conn) {
 		if !name.IsDir() {
 			file, err := os.Open(filepath.Join(dir, name.Name()))
 			if err != nil {
-				log.Printf("%s: failed to open file\n", err)
+				log.Println(err)
 				return
 			}
 			netfile := networking.BuildNetfile(file)
@@ -121,4 +127,5 @@ func download(conn net.Conn) {
 			file.Close()
 		}
 	}
+	log.Println("stopped providing download")
 }

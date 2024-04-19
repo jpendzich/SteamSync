@@ -3,7 +3,6 @@ package networking
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -15,9 +14,10 @@ func TestWriteInt(test *testing.T) {
 	buf1 := bytes.NewBuffer(nil)
 	WriteInt(uint64(testint), buf1)
 
+	buf2 := bytes.NewBuffer(make([]byte, 1))
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(testint))
-	buf2 := bytes.NewBuffer(numasbytes)
+	buf2.Write(numasbytes)
 
 	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
 		test.Error("Int serialization failed")
@@ -31,15 +31,14 @@ func TestWriteString(test *testing.T) {
 	var str Netstring
 	str.Actstr = teststring
 	str.Length = uint64(len(str.Actstr))
-	str.Error = false
 	WriteString(str, buf1)
 
 	buf2 := bytes.NewBuffer(nil)
+	buf2.Write(make([]byte, 2))
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(len(teststring)))
 	buf2.Write(numasbytes)
 	buf2.Write([]byte(teststring))
-	buf2.Write(make([]byte, 1))
 
 	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
 		test.Error("String serialization failed")
@@ -67,10 +66,10 @@ func TestWriteFile(test *testing.T) {
 	io.Copy(file.Actfile, testfile)
 	buf1 := bytes.NewBuffer(nil)
 	testfile.Close()
-	file.Error = false
 	WriteFile(file, buf1)
 
 	buf2 := bytes.NewBuffer(nil)
+	buf2.Write(make([]byte, 3))
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(len(testfilename)))
 	buf2.Write(numasbytes)
@@ -84,21 +83,21 @@ func TestWriteFile(test *testing.T) {
 	}
 	defer testfile.Close()
 	io.Copy(buf2, testfile)
-	buf2.Write(make([]byte, 1))
 
 	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
-		errorstr := fmt.Sprintf("File serialization failed: \n%s %d\n%s %d", buf1.Bytes(), buf1.Len(), buf2.Bytes(), buf2.Len())
-		test.Error(errorstr)
+		test.Error("File serialization failed")
 	}
 }
 
 func TestReadInt(test *testing.T) {
 	testint := 42
 
+	buf := bytes.NewBuffer(nil)
+	buf.Write(make([]byte, 1))
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(testint))
-	buf := bytes.NewBuffer(numasbytes)
-	result1 := ReadInt(buf)
+	buf.Write(numasbytes)
+	result1, _ := ReadInt(buf)
 
 	result2 := binary.BigEndian.Uint64(numasbytes)
 
@@ -110,10 +109,12 @@ func TestReadInt(test *testing.T) {
 func TestReadString(test *testing.T) {
 	teststring := "This is a teststring"
 
+	buf := bytes.NewBuffer(nil)
+	buf.Write(make([]byte, 2))
 	numasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numasbytes, uint64(len(teststring)))
 	stringasbytes := []byte(teststring)
-	buf := bytes.NewBuffer(numasbytes)
+	buf.Write(numasbytes)
 	buf.Write(stringasbytes)
 	result1, _ := ReadString(buf)
 
@@ -121,7 +122,6 @@ func TestReadString(test *testing.T) {
 	result2.Length = binary.BigEndian.Uint64(numasbytes)
 	result2.Actstr = string(stringasbytes)
 
-	//if (result1.Length != result2.length) && (result1.Actstr != result2.actstr) {
 	if result1 != result2 {
 		test.Error("String deserialization failed")
 	}
@@ -130,6 +130,7 @@ func TestReadString(test *testing.T) {
 func TestReadFile(test *testing.T) {
 	testfilename := "test.txt"
 
+	buf := bytes.NewBuffer(nil)
 	strlenasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(strlenasbytes, uint64(len(testfilename)))
 	stringasbytes := []byte(testfilename)
@@ -143,19 +144,18 @@ func TestReadFile(test *testing.T) {
 	}
 	filelenasbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(filelenasbytes, uint64(testfilestat.Size()))
-	buf := bytes.NewBuffer(strlenasbytes)
+	buf.Write(make([]byte, 3))
+	buf.Write(strlenasbytes)
 	buf.Write(stringasbytes)
 	buf.Write(make([]byte, 1))
 	buf.Write(filelenasbytes)
 	io.Copy(buf, testfile)
 	testfile.Close()
-	buf.Write(make([]byte, 1))
 	result1, _ := ReadFile(buf)
 
 	var result2 Netfile
 	result2.Name.Length = binary.BigEndian.Uint64(strlenasbytes)
 	result2.Name.Actstr = testfilename
-	result2.Name.Error = false
 	result2.Length = binary.BigEndian.Uint64(filelenasbytes)
 	testfile, err = os.Open(testfilename)
 	if err != nil {
@@ -164,7 +164,6 @@ func TestReadFile(test *testing.T) {
 	defer testfile.Close()
 	result2.Actfile = bytes.NewBuffer(nil)
 	io.Copy(result2.Actfile, testfile)
-	result2.Error = false
 
 	if !bytes.Equal(result1.Actfile.Bytes(), result2.Actfile.Bytes()) || (result1.Name != result2.Name) || (result1.Length != result2.Length) {
 		test.Error("File deserialization failed")

@@ -26,7 +26,7 @@ func main() {
 
 	conn, err := net.Dial("tcp", ipadress+":8080")
 	if err != nil {
-		log.Fatalf("%s: failed to dial connection\n", err)
+		log.Fatalln(err)
 	}
 	defer conn.Close()
 
@@ -42,7 +42,7 @@ func main() {
 func upload(conn net.Conn, game string, dir string) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		log.Fatalf("%s: failed to read dir\n", err)
+		log.Fatalln(err)
 	}
 
 	var saves []string
@@ -59,7 +59,7 @@ func upload(conn net.Conn, game string, dir string) {
 		fmt.Println(save)
 		file, err := os.Open(dir + "/" + save)
 		if err != nil {
-			log.Fatalf("%s: failed to open file\n", err)
+			log.Fatalln(err)
 		}
 		netfile := networking.BuildNetfile(file)
 		networking.WriteFile(netfile, conn)
@@ -71,7 +71,10 @@ func download(conn net.Conn, game string, dir string) {
 	networking.WriteString(networking.BuildNetstring("DOWNLOAD"), conn)
 	networking.WriteString(networking.BuildNetstring(game), conn)
 
-	numsaves := networking.ReadInt(conn)
+	numsaves, err := networking.ReadInt(conn)
+	if err != nil {
+		log.Fatalf("%s: connection closed gracefully\n", err)
+	}
 	for i := 0; i < int(numsaves); i++ {
 		netfile, err := networking.ReadFile(conn)
 		if err != nil {
@@ -79,7 +82,7 @@ func download(conn net.Conn, game string, dir string) {
 		}
 		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
 		if err != nil {
-			log.Fatalf("%s: failed to create file\n", err)
+			log.Fatalln(err)
 		}
 		io.Copy(file, netfile.Actfile)
 		file.Close()

@@ -11,13 +11,11 @@ type Netfile struct {
 	Name    Netstring
 	Length  uint64
 	Actfile *bytes.Buffer
-	Error   bool
 }
 
 type Netstring struct {
 	Length uint64
 	Actstr string
-	Error  bool
 }
 
 func BuildNetstring(str string) Netstring {

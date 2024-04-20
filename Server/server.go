@@ -65,10 +65,12 @@ func upload(conn net.Conn) {
 	if errors.Is(err, os.ErrNotExist) {
 		err = os.Mkdir(game.Actstr, 0755)
 		if err != nil {
+			networking.WriteError(true, conn)
 			log.Println(err)
 			return
 		}
 	} else if err != nil {
+		networking.WriteError(true, conn)
 		log.Println(err)
 		return
 	}
@@ -79,15 +81,21 @@ func upload(conn net.Conn) {
 	for i := 0; i < int(numfiles); i++ {
 		netfile, err := networking.ReadFile(conn)
 		if err != nil {
-			log.Printf("%s: connection closed gracefully\n", err)
+			log.Printf("%s: connection closed\n", err)
 			return
 		}
 		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
 		if err != nil {
+			networking.WriteError(true, conn)
 			log.Println(err)
 			return
 		}
-		io.Copy(file, netfile.Actfile)
+		_, err = io.Copy(file, netfile.Actfile)
+		if err != nil {
+			networking.WriteError(true, conn)
+			log.Println(err)
+			return
+		}
 		file.Close()
 	}
 	log.Println("stopped receiving upload")
@@ -99,18 +107,20 @@ func download(conn net.Conn) {
 
 	game, err := networking.ReadString(conn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("%s: connection closed\n", err)
 		return
 	}
 	dir := filepath.Join(".", game.Actstr)
 	_, err = os.Stat(dir)
 	if os.IsNotExist(err) {
+		networking.WriteError(true, conn)
 		log.Println(err)
 		return
 	}
 
 	names, err := os.ReadDir(dir)
 	if err != nil {
+		networking.WriteError(true, conn)
 		log.Println(err)
 		return
 	}
@@ -119,6 +129,7 @@ func download(conn net.Conn) {
 		if !name.IsDir() {
 			file, err := os.Open(filepath.Join(dir, name.Name()))
 			if err != nil {
+				networking.WriteError(true, conn)
 				log.Println(err)
 				return
 			}

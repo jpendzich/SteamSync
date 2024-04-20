@@ -42,6 +42,7 @@ func main() {
 func upload(conn net.Conn, game string, dir string) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
+		networking.WriteError(true, conn)
 		log.Fatalln(err)
 	}
 
@@ -59,6 +60,7 @@ func upload(conn net.Conn, game string, dir string) {
 		fmt.Println(save)
 		file, err := os.Open(dir + "/" + save)
 		if err != nil {
+			networking.WriteError(true, conn)
 			log.Fatalln(err)
 		}
 		netfile := networking.BuildNetfile(file)
@@ -82,6 +84,7 @@ func download(conn net.Conn, game string, dir string) {
 		}
 		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
 		if err != nil {
+			networking.WriteError(true, conn)
 			log.Fatalln(err)
 		}
 		io.Copy(file, netfile.Actfile)

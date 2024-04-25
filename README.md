@@ -8,3 +8,5 @@ This program is supposed to replace the Steam Cloud for games that do not suppor
  - Help argument
  - Finding saves using api calls to https://www.pcgamingwiki.com/wiki/Home
  - Possibly make local database by webscraping
+ - TLS encryption
+ - Option to request all games on server

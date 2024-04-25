@@ -7,41 +7,72 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-type BtnFunc func()
+type ClientAppEvent func(*ClientApp)
 
-var OkClicked BtnFunc
-var CancelClicked BtnFunc
-
-var EntryIP *widget.Entry
-var EntryRequest *widget.Entry
-var EntryGame *widget.Entry
-var EntryDir *widget.Entry
-
-var a fyne.App
-var w fyne.Window
-
-func CreateWindow() {
-	a = app.New()
-	w = a.NewWindow("SteamSync Client")
-	w.Resize(fyne.NewSize(500, 200))
-
-	labelIP := widget.NewLabel("IP-Address")
-	EntryIP = widget.NewEntry()
-	labelRequest := widget.NewLabel("Request")
-	EntryRequest = widget.NewEntry()
-	labelGame := widget.NewLabel("Game")
-	EntryGame = widget.NewEntry()
-	labelDir := widget.NewLabel("Directory")
-	EntryDir = widget.NewEntry()
-	btnOk := widget.NewButton("Ok", OkClicked)
-	btnCancel := widget.NewButton("Cancel", CancelClicked)
-	contBtns := container.NewHBox(btnOk, btnCancel)
-	contMain := container.NewVBox(labelIP, EntryIP, labelRequest, EntryRequest, labelGame, EntryGame, labelDir, EntryDir, contBtns)
-	w.SetContent(contMain)
-	w.ShowAndRun()
+type ClientApp struct {
+	OkClicked     ClientAppEvent
+	CancelClicked ClientAppEvent
+	app           fyne.App
+	window        fyne.Window
+	labelIP       *widget.Label
+	entryIP       *widget.Entry
+	labelRequest  *widget.Label
+	selectRequest *widget.Select
+	labelGame     *widget.Label
+	entryGame     *widget.Entry
+	labelDir      *widget.Label
+	entryDir      *widget.Entry
+	btnOk         *widget.Button
+	btnCancel     *widget.Button
 }
 
-func CloseWindow() {
-	w.Hide()
-	a.Quit()
+func NewClientApp() *ClientApp {
+	return &ClientApp{}
+}
+
+func (cla *ClientApp) Init() {
+	cla.app = app.New()
+	cla.window = cla.app.NewWindow("SteamSync Client")
+	cla.window.Resize(fyne.NewSize(500, 200))
+
+	cla.labelIP = widget.NewLabel("IP-Address:")
+	cla.entryIP = widget.NewEntry()
+	cla.labelRequest = widget.NewLabel("Choose what to do")
+	cla.selectRequest = widget.NewSelect([]string{"UPLOAD", "DOWNLOAD"}, func(s string) {})
+	cla.labelGame = widget.NewLabel("Game:")
+	cla.entryGame = widget.NewEntry()
+	cla.labelDir = widget.NewLabel("Directory:")
+	cla.entryDir = widget.NewEntry()
+	cla.btnOk = widget.NewButton("Ok", func() { cla.OkClicked(cla) })
+	cla.btnCancel = widget.NewButton("Cancel", func() { cla.CancelClicked(cla) })
+
+	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
+	contMain := container.NewVBox(cla.labelIP, cla.entryIP, cla.labelRequest, cla.selectRequest,
+		cla.labelGame, cla.entryGame, cla.labelDir, cla.entryDir, contBtns)
+	cla.window.SetContent(contMain)
+}
+
+func (cla *ClientApp) Show() {
+	cla.window.ShowAndRun()
+}
+
+func (cla *ClientApp) Close() {
+	cla.window.Close()
+	cla.app.Quit()
+}
+
+func (cla *ClientApp) GetIP() string {
+	return cla.entryIP.Text
+}
+
+func (cla *ClientApp) GetRequest() string {
+	return cla.selectRequest.Selected
+}
+
+func (cla *ClientApp) GetGame() string {
+	return cla.entryGame.Text
+}
+
+func (cla *ClientApp) GetDir() string {
+	return cla.entryDir.Text
 }

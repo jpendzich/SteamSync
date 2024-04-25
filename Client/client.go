@@ -10,10 +10,11 @@ import (
 )
 
 func main() {
-	window.OkClicked = start
-	window.CancelClicked = exit
-
-	window.CreateWindow()
+	clientApp := window.NewClientApp()
+	clientApp.Init()
+	clientApp.OkClicked = start
+	clientApp.CancelClicked = exit
+	clientApp.Show()
 
 	// if len(os.Args) == 1 {
 	// 	fmt.Println("Commands:")
@@ -28,11 +29,11 @@ func main() {
 
 }
 
-func start() {
-	ipaddress := window.EntryIP.Text
-	request := window.EntryRequest.Text
-	game := window.EntryGame.Text
-	dir := window.EntryDir.Text
+func start(cla *window.ClientApp) {
+	ipaddress := cla.GetIP()
+	request := cla.GetRequest()
+	game := cla.GetGame()
+	dir := cla.GetDir()
 
 	conn, err := net.Dial("tcp", ipaddress+":8080")
 	if err != nil {
@@ -48,7 +49,7 @@ func start() {
 	}
 }
 
-func exit() {
-	window.CloseWindow()
+func exit(cla *window.ClientApp) {
+	cla.Close()
 	os.Exit(0)
 }

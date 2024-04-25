@@ -18,6 +18,10 @@ func main() {
 		fmt.Println("\t<IP-Address>")
 		return
 	}
+	exeDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatalln(err)
+	}
 	ipaddress := os.Args[1]
 	listener, err := net.Listen("tcp", ipaddress+":8080")
 	if err != nil {
@@ -45,14 +49,14 @@ func main() {
 
 		switch request.Actstr {
 		case "UPLOAD":
-			upload(conn)
+			upload(conn, exeDir)
 		case "DOWNLOAD":
-			download(conn)
+			download(conn, exeDir)
 		}
 	}
 }
 
-func upload(conn net.Conn) {
+func upload(conn net.Conn, exeDir string) {
 	defer conn.Close()
 	log.Println("started receiving upload")
 
@@ -61,9 +65,10 @@ func upload(conn net.Conn) {
 		log.Printf("%s: connection closed\n", err)
 		return
 	}
-	_, err = os.Stat(game.Actstr)
+	dir := filepath.Join(exeDir, game.Actstr)
+	_, err = os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
-		err = os.Mkdir(game.Actstr, 0755)
+		err = os.Mkdir(dir, 0755)
 		if err != nil {
 			networking.WriteError(true, conn)
 			log.Println(err)
@@ -84,7 +89,7 @@ func upload(conn net.Conn) {
 			log.Printf("%s: connection closed\n", err)
 			return
 		}
-		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
+		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
 		if err != nil {
 			networking.WriteError(true, conn)
 			log.Println(err)
@@ -101,7 +106,7 @@ func upload(conn net.Conn) {
 	log.Println("stopped receiving upload")
 }
 
-func download(conn net.Conn) {
+func download(conn net.Conn, exeDir string) {
 	defer conn.Close()
 	log.Println("started providing download")
 
@@ -110,7 +115,7 @@ func download(conn net.Conn) {
 		log.Printf("%s: connection closed\n", err)
 		return
 	}
-	dir := filepath.Join(".", game.Actstr)
+	dir := filepath.Join(exeDir, game.Actstr)
 	_, err = os.Stat(dir)
 	if os.IsNotExist(err) {
 		networking.WriteError(true, conn)

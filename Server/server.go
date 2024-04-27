@@ -49,14 +49,16 @@ func main() {
 
 		switch request.Actstr {
 		case "UPLOAD":
-			upload(conn, exeDir)
+			receiveFromClient(conn, exeDir)
 		case "DOWNLOAD":
-			download(conn, exeDir)
+			sendToClient(conn, exeDir)
+		case "GAMES":
+			sendGames(conn, exeDir)
 		}
 	}
 }
 
-func upload(conn net.Conn, exeDir string) {
+func receiveFromClient(conn net.Conn, exeDir string) {
 	defer conn.Close()
 	log.Println("started receiving upload")
 
@@ -106,7 +108,7 @@ func upload(conn net.Conn, exeDir string) {
 	log.Println("stopped receiving upload")
 }
 
-func download(conn net.Conn, exeDir string) {
+func sendToClient(conn net.Conn, exeDir string) {
 	defer conn.Close()
 	log.Println("started providing download")
 
@@ -123,16 +125,16 @@ func download(conn net.Conn, exeDir string) {
 		return
 	}
 
-	names, err := os.ReadDir(dir)
+	saves, err := os.ReadDir(dir)
 	if err != nil {
 		networking.WriteError(true, conn)
 		log.Println(err)
 		return
 	}
-	networking.WriteInt(uint64(len(names)), conn)
-	for _, name := range names {
-		if !name.IsDir() {
-			file, err := os.Open(filepath.Join(dir, name.Name()))
+	networking.WriteInt(uint64(len(saves)), conn)
+	for _, save := range saves {
+		if !save.IsDir() {
+			file, err := os.Open(filepath.Join(dir, save.Name()))
 			if err != nil {
 				networking.WriteError(true, conn)
 				log.Println(err)
@@ -144,4 +146,28 @@ func download(conn net.Conn, exeDir string) {
 		}
 	}
 	log.Println("stopped providing download")
+}
+
+func sendGames(conn net.Conn, exeDir string) {
+	log.Println("sending games")
+	entries, err := os.ReadDir(exeDir)
+	if err != nil {
+		networking.WriteError(true, conn)
+		log.Println(err)
+		return
+	}
+
+	games := make([]string, 0)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			games = append(games, entry.Name())
+		}
+	}
+
+	networking.WriteInt(uint64(len(games)), conn)
+
+	for _, game := range games {
+		networking.WriteString(networking.BuildNetstring(game), conn)
+	}
+	log.Println("stopped sending games")
 }

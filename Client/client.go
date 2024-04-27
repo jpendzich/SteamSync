@@ -10,10 +10,11 @@ import (
 )
 
 func main() {
-	clientApp := window.NewClientApp()
+	clientApp := window.NewClientWindow()
 	clientApp.Init()
 	clientApp.OkClicked = start
 	clientApp.CancelClicked = exit
+	clientApp.GamesClicked = getGames
 	clientApp.Show()
 
 	// if len(os.Args) == 1 {
@@ -29,7 +30,7 @@ func main() {
 
 }
 
-func start(cla *window.ClientApp) {
+func start(cla *window.ClientWindow) {
 	ipaddress := cla.GetIP()
 	request := cla.GetRequest()
 	game := cla.GetGame()
@@ -43,13 +44,26 @@ func start(cla *window.ClientApp) {
 
 	switch request {
 	case "UPLOAD":
-		internal.Upload(conn, game, dir)
+		internal.UploadGameSaves(conn, game, dir)
 	case "DOWNLOAD":
-		internal.Download(conn, game, dir)
+		internal.DownloadGameSaves(conn, game, dir)
 	}
 }
 
-func exit(cla *window.ClientApp) {
+func getGames(cla *window.ClientWindow) {
+	ipaddress := cla.GetIP()
+
+	conn, err := net.Dial("tcp", ipaddress+":8080")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer conn.Close()
+
+	games := internal.GetGames(conn)
+	cla.SetGames(games)
+}
+
+func exit(cla *window.ClientWindow) {
 	cla.Close()
 	os.Exit(0)
 }

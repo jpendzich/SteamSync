@@ -4,6 +4,8 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -15,7 +17,6 @@ type ClientWindow struct {
 	GamesClicked  ClientWindowEvent
 	app           fyne.App
 	window        fyne.Window
-	ipwindow      ipAddressWindow
 	ipadress      string
 	labelRequest  *widget.Label
 	selectRequest *widget.Select
@@ -29,40 +30,16 @@ type ClientWindow struct {
 	btnGames      *widget.Button
 }
 
-type ipAddressWindow struct {
-	window    fyne.Window
-	labelIP   *widget.Label
-	entryIP   *widget.Entry
-	btnOk     *widget.Button
-	btnCancel *widget.Button
-}
-
 func NewClientWindow() *ClientWindow {
 	return &ClientWindow{}
 }
 
-func newIPAddressWindow() *ipAddressWindow {
-	return &ipAddressWindow{}
-}
-
 func (cla *ClientWindow) Init() {
 	cla.app = app.New()
+	cla.app.Settings().SetTheme(theme.DarkTheme())
 	cla.window = cla.app.NewWindow("SteamSync Client")
 	cla.window.Resize(fyne.NewSize(500, 200))
 	cla.window.SetMaster()
-	cla.ipwindow = *newIPAddressWindow()
-	cla.ipwindow.window = cla.app.NewWindow("IPAddress")
-	cla.ipwindow.labelIP = widget.NewLabel("IPAddress:")
-	cla.ipwindow.entryIP = widget.NewEntry()
-	cla.ipwindow.btnOk = widget.NewButton("Ok", func() { cla.ipadress = cla.ipwindow.entryIP.Text })
-	cla.ipwindow.btnCancel = widget.NewButton("Cancel", func() {
-		cla.ipwindow.window.Close()
-		cla.window.Close()
-		cla.app.Quit()
-	})
-	contIPBtns := container.NewHBox(cla.ipwindow.btnOk, cla.ipwindow.btnCancel)
-	contIP := container.NewVBox(cla.ipwindow.labelIP, cla.ipwindow.entryIP, contIPBtns)
-	cla.ipwindow.window.SetContent(contIP)
 
 	cla.labelRequest = widget.NewLabel("Choose what to do")
 	cla.selectRequest = widget.NewSelect([]string{"UPLOAD", "DOWNLOAD"}, func(s string) {})
@@ -82,7 +59,14 @@ func (cla *ClientWindow) Init() {
 }
 
 func (cla *ClientWindow) Show() {
-	cla.ipwindow.window.Show()
+	entryIP := widget.NewEntry()
+	dialog.ShowForm("IPAddress", "Ok", "Cancel", []*widget.FormItem{widget.NewFormItem("Input the servers ipaddress", entryIP)}, func(b bool) {
+		if b {
+			cla.ipadress = entryIP.Text
+		} else {
+			cla.Close()
+		}
+	}, cla.window)
 	cla.window.ShowAndRun()
 }
 

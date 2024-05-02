@@ -15,6 +15,7 @@ func main() {
 	clientApp.OkClicked = start
 	clientApp.CancelClicked = exit
 	clientApp.GamesClicked = getGames
+	clientApp.OnIPReceived = getGames
 	clientApp.Show()
 
 	// if len(os.Args) == 1 {

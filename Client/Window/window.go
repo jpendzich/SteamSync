@@ -14,7 +14,7 @@ type ClientWindowEvent func(*ClientWindow)
 type ClientWindow struct {
 	OkClicked     ClientWindowEvent
 	CancelClicked ClientWindowEvent
-	GamesClicked  ClientWindowEvent
+	OnIPReceived  ClientWindowEvent
 	app           fyne.App
 	window        fyne.Window
 	ipadress      string
@@ -27,7 +27,6 @@ type ClientWindow struct {
 	entryDir      *widget.Entry
 	btnOk         *widget.Button
 	btnCancel     *widget.Button
-	btnGames      *widget.Button
 }
 
 func NewClientWindow() *ClientWindow {
@@ -50,9 +49,8 @@ func (cla *ClientWindow) Init() {
 	cla.entryDir = widget.NewEntry()
 	cla.btnOk = widget.NewButton("Ok", func() { cla.OkClicked(cla) })
 	cla.btnCancel = widget.NewButton("Cancel", func() { cla.CancelClicked(cla) })
-	cla.btnGames = widget.NewButton("Update Games", func() { cla.GamesClicked(cla) })
 
-	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel, cla.btnGames)
+	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
 	contMain := container.NewVBox(cla.labelRequest, cla.selectRequest,
 		cla.labelGame, cla.selectGames, cla.entryGame, cla.labelDir, cla.entryDir, contBtns)
 	cla.window.SetContent(contMain)
@@ -67,6 +65,7 @@ func (cla *ClientWindow) Show() {
 			cla.Close()
 		}
 	}, cla.window)
+	cla.OnIPReceived(cla)
 	cla.window.ShowAndRun()
 }
 

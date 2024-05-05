@@ -18,15 +18,27 @@ type ClientWindow struct {
 	app           fyne.App
 	window        fyne.Window
 	ipadress      string
-	labelRequest  *widget.Label
-	selectRequest *widget.Select
-	labelGame     *widget.Label
-	selectGames   *widget.Select
-	entryGame     *widget.Entry
-	labelDir      *widget.Label
-	entryDir      *widget.Entry
+	upTab         *UploadTab
+	downTab       *DownloadTab
+	contTabs      *container.AppTabs
 	btnOk         *widget.Button
 	btnCancel     *widget.Button
+}
+
+type UploadTab struct {
+	labelNewGame       *widget.Label
+	entryNewGame       *widget.Entry
+	labelExistingGame  *widget.Label
+	selectExistingGame *widget.Select
+	labelDirectory     *widget.Label
+	entryDirectory     *widget.Entry
+}
+
+type DownloadTab struct {
+	labelGame      *widget.Label
+	selectGame     *widget.Select
+	labelDirectory *widget.Label
+	entryDirectory *widget.Entry
 }
 
 func NewClientWindow() *ClientWindow {
@@ -40,19 +52,26 @@ func (cla *ClientWindow) Init() {
 	cla.window.Resize(fyne.NewSize(500, 200))
 	cla.window.SetMaster()
 
-	cla.labelRequest = widget.NewLabel("Choose what to do")
-	cla.selectRequest = widget.NewSelect([]string{"UPLOAD", "DOWNLOAD"}, func(s string) {})
-	cla.labelGame = widget.NewLabel("Game:")
-	cla.selectGames = widget.NewSelect([]string{}, func(s string) {})
-	cla.entryGame = widget.NewEntry()
-	cla.labelDir = widget.NewLabel("Directory:")
-	cla.entryDir = widget.NewEntry()
+	cla.downTab.labelGame = widget.NewLabel("Game:")
+	cla.downTab.selectGame = widget.NewSelect([]string{}, func(s string) {})
+	cla.downTab.labelDirectory = widget.NewLabel("Save Directory")
+	cla.downTab.entryDirectory = widget.NewEntry()
+
+	cla.upTab.labelNewGame = widget.NewLabel("New Game:")
+	cla.upTab.entryNewGame = widget.NewEntry()
+	cla.upTab.labelExistingGame = widget.NewLabel("Existing Game")
+	cla.upTab.selectExistingGame = widget.NewSelect([]string{}, func(s string) {})
+	cla.upTab.labelDirectory = widget.NewLabel("Save Directory")
+	cla.upTab.entryDirectory = widget.NewEntry()
+
 	cla.btnOk = widget.NewButton("Ok", func() { cla.OkClicked(cla) })
 	cla.btnCancel = widget.NewButton("Cancel", func() { cla.CancelClicked(cla) })
 
 	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
-	contMain := container.NewVBox(cla.labelRequest, cla.selectRequest,
-		cla.labelGame, cla.selectGames, cla.entryGame, cla.labelDir, cla.entryDir, contBtns)
+	contUpload := container.NewVBox(cla.upTab.labelNewGame, cla.upTab.entryNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, cla.upTab.entryDirectory)
+	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, cla.downTab.entryDirectory)
+	cla.contTabs = container.NewAppTabs(container.NewTabItem("Upload", contUpload), container.NewTabItem("Download", contDownload))
+	contMain := container.NewVBox(cla.contTabs, contBtns)
 	cla.window.SetContent(contMain)
 }
 
@@ -75,7 +94,11 @@ func (cla *ClientWindow) Close() {
 }
 
 func (cla *ClientWindow) SetGames(games []string) {
-	cla.selectGames.Options = games
+	if cla.contTabs.Selected().Text == "Upload" {
+		cla.upTab.selectExistingGame.Options = games
+	} else {
+		cla.downTab.selectGame.Options = games
+	}
 }
 
 func (cla *ClientWindow) GetIP() string {
@@ -83,10 +106,19 @@ func (cla *ClientWindow) GetIP() string {
 }
 
 func (cla *ClientWindow) GetRequest() string {
-	return cla.selectRequest.Selected
+	if cla.contTabs.Selected().Text == "Upload" {
+		return "UPLOAD"
+	} else {
+		return "DOWNLOAD"
+	}
 }
 
 func (cla *ClientWindow) GetGame() string {
+	if cla.contTabs.Selected().Text == "Upload" {
+		return cla.upTab.entry http.ResponseWriter, r *http.Request
+	} else {
+		cla.downTab.selectGame.Options = games
+	}
 	return cla.entryGame.Text
 }
 

@@ -14,7 +14,6 @@ func main() {
 	clientApp.Init()
 	clientApp.OkClicked = start
 	clientApp.CancelClicked = exit
-	clientApp.GamesClicked = getGames
 	clientApp.OnIPReceived = getGames
 	clientApp.Show()
 

@@ -18,8 +18,8 @@ type ClientWindow struct {
 	app           fyne.App
 	window        fyne.Window
 	ipadress      string
-	upTab         *UploadTab
-	downTab       *DownloadTab
+	upTab         UploadTab
+	downTab       DownloadTab
 	contTabs      *container.AppTabs
 	btnOk         *widget.Button
 	btnCancel     *widget.Button
@@ -115,13 +115,20 @@ func (cla *ClientWindow) GetRequest() string {
 
 func (cla *ClientWindow) GetGame() string {
 	if cla.contTabs.Selected().Text == "Upload" {
-		return cla.upTab.entry http.ResponseWriter, r *http.Request
+		if cla.upTab.entryNewGame.Text != "" {
+			return cla.upTab.entryNewGame.Text
+		} else {
+			return cla.upTab.selectExistingGame.Selected
+		}
 	} else {
-		cla.downTab.selectGame.Options = games
+		return cla.downTab.selectGame.Selected
 	}
-	return cla.entryGame.Text
 }
 
 func (cla *ClientWindow) GetDir() string {
-	return cla.entryDir.Text
+	if cla.contTabs.Selected().Text == "Upload" {
+		return cla.upTab.entryDirectory.Text
+	} else {
+		return cla.downTab.entryDirectory.Text
+	}
 }

@@ -1,10 +1,13 @@
 package window
 
 import (
+	"log"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -32,6 +35,7 @@ type UploadTab struct {
 	selectExistingGame *widget.Select
 	labelDirectory     *widget.Label
 	entryDirectory     *widget.Entry
+	btnOpenDialog      *widget.Button
 }
 
 type DownloadTab struct {
@@ -39,6 +43,7 @@ type DownloadTab struct {
 	selectGame     *widget.Select
 	labelDirectory *widget.Label
 	entryDirectory *widget.Entry
+	btnOpenDialog  *widget.Button
 }
 
 func NewClientWindow() *ClientWindow {
@@ -56,6 +61,7 @@ func (cla *ClientWindow) Init() {
 	cla.downTab.selectGame = widget.NewSelect([]string{}, func(s string) {})
 	cla.downTab.labelDirectory = widget.NewLabel("Save Directory")
 	cla.downTab.entryDirectory = widget.NewEntry()
+	cla.downTab.btnOpenDialog = widget.NewButton("...", func() { cla.openDirDialog(cla.downTab.entryDirectory) })
 
 	cla.upTab.labelNewGame = widget.NewLabel("New Game:")
 	cla.upTab.entryNewGame = widget.NewEntry()
@@ -63,13 +69,19 @@ func (cla *ClientWindow) Init() {
 	cla.upTab.selectExistingGame = widget.NewSelect([]string{}, func(s string) {})
 	cla.upTab.labelDirectory = widget.NewLabel("Save Directory")
 	cla.upTab.entryDirectory = widget.NewEntry()
+	cla.upTab.btnOpenDialog = widget.NewButton("...", func() { cla.openDirDialog(cla.upTab.entryDirectory) })
 
 	cla.btnOk = widget.NewButton("Ok", func() { cla.OkClicked(cla) })
 	cla.btnCancel = widget.NewButton("Cancel", func() { cla.CancelClicked(cla) })
 
 	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
-	contUpload := container.NewVBox(cla.upTab.labelNewGame, cla.upTab.entryNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, cla.upTab.entryDirectory)
-	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, cla.downTab.entryDirectory)
+
+	contFolderOpenUpload := container.NewStack(cla.upTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.upTab.btnOpenDialog))
+	contUpload := container.NewVBox(cla.upTab.labelNewGame, cla.upTab.entryNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, contFolderOpenUpload)
+
+	contFolderOpenDownload := container.NewStack(cla.downTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.downTab.btnOpenDialog))
+	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, contFolderOpenDownload)
+
 	cla.contTabs = container.NewAppTabs(container.NewTabItem("Upload", contUpload), container.NewTabItem("Download", contDownload))
 	contMain := container.NewVBox(cla.contTabs, contBtns)
 	cla.window.SetContent(contMain)
@@ -93,12 +105,21 @@ func (cla *ClientWindow) Close() {
 	cla.app.Quit()
 }
 
+func (cla *ClientWindow) openDirDialog(outputEntry *widget.Entry) {
+	dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		if uri != nil {
+			outputEntry.SetText(uri.Path())
+		}
+	}, cla.window)
+}
+
 func (cla *ClientWindow) SetGames(games []string) {
-	if cla.contTabs.Selected().Text == "Upload" {
-		cla.upTab.selectExistingGame.Options = games
-	} else {
-		cla.downTab.selectGame.Options = games
-	}
+	cla.upTab.selectExistingGame.Options = games
+	cla.downTab.selectGame.Options = games
 }
 
 func (cla *ClientWindow) GetIP() string {

@@ -59,8 +59,7 @@ func getGames(cla *window.ClientWindow) {
 	}
 	defer conn.Close()
 
-	games := internal.GetGames(conn)
-	cla.SetGames(games)
+	cla.SetGames(internal.GetGames(conn))
 }
 
 func exit(cla *window.ClientWindow) {

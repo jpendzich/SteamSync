@@ -27,6 +27,13 @@ func BuildNetstring(str string) Netstring {
 
 func BuildNetfile(file *os.File) Netfile {
 	var netfile Netfile
+	if file == nil {
+		netfile.Name = BuildNetstring("")
+		netfile.Length = 0
+		netfile.Actfile = bytes.NewBuffer(nil)
+		return netfile
+	}
+
 	netfile.Name = BuildNetstring(filepath.Base(file.Name()))
 	filestat, err := file.Stat()
 	if err != nil {
@@ -39,4 +46,18 @@ func BuildNetfile(file *os.File) Netfile {
 		panic(err)
 	}
 	return netfile
+}
+
+func BoolToByte(b bool) []byte {
+	buf := make([]byte, 1)
+	if b {
+		buf[0] = 1
+	} else {
+		buf[0] = 0
+	}
+	return buf
+}
+
+func ByteToBool(b []byte) bool {
+	return b[0] == 1
 }

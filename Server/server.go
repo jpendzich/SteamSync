@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -11,72 +13,161 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", "192.168.178.58:8080")
+	if len(os.Args) == 1 {
+		fmt.Println("Commands:")
+		fmt.Println("\t<IP-Address>")
+		return
+	}
+	exeDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Fatalln(err)
+	}
+	ipaddress := os.Args[1]
+	listener, err := net.Listen("tcp", ipaddress+":8080")
+	if err != nil {
+		log.Fatalf("%s: connection closed", err)
 		return
 	}
 	defer listener.Close()
 
-	fmt.Println("Server is listening on port 8080")
+	log.Printf("server started listening: %s:8080\n", ipaddress)
 
 	for {
+		log.Println("awaiting connection")
 		conn, err := listener.Accept()
+		log.Printf("accepted connection: %s\n", conn.RemoteAddr())
 		if err != nil {
-			fmt.Println("Error:", err)
+			log.Println(err)
 			continue
 		}
 
-		request := networking.DeserializeString(conn)
+		request, err := networking.ReadString(conn)
+		if err != nil {
+			log.Printf("%s: connection closed gracefully\n", err.Error())
+			continue
+		}
 
 		switch request.Actstr {
 		case "UPLOAD":
-			upload(conn)
+			receiveFromClient(conn, exeDir)
 		case "DOWNLOAD":
-			download(conn)
+			sendToClient(conn, exeDir)
+		case "GAMES":
+			sendGames(conn, exeDir)
 		}
 	}
 }
 
-func upload(conn net.Conn) {
-	fmt.Println("UPLOAD")
+func receiveFromClient(conn net.Conn, exeDir string) {
+	defer conn.Close()
+	log.Println("started receiving upload")
 
-	game := networking.DeserializeString(conn)
-	err := os.Mkdir(game.Actstr, 0755)
+	game, err := networking.ReadString(conn)
 	if err != nil {
-		panic(err)
+		log.Printf("%s: connection closed\n", err)
+		return
 	}
-	numfiles := networking.DeserializeInt(conn)
-	for i := 0; i < int(numfiles); i++ {
-		netfile := networking.DeserializeFile(conn)
-		file, err := os.Create(filepath.Join(".", game.Actstr, netfile.Name.Actstr))
+	dir := filepath.Join(exeDir, game.Actstr)
+	_, err = os.Stat(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		err = os.Mkdir(dir, 0755)
 		if err != nil {
-			panic(err)
+			networking.WriteError(true, conn)
+			log.Println(err)
+			return
 		}
-		io.Copy(file, netfile.Actfile)
+	} else if err != nil {
+		networking.WriteError(true, conn)
+		log.Println(err)
+		return
+	}
+	numfiles, err := networking.ReadInt(conn)
+	if err != nil {
+		log.Fatalf("%s: connection closed\n", err)
+	}
+	for i := 0; i < int(numfiles); i++ {
+		netfile, err := networking.ReadFile(conn)
+		if err != nil {
+			log.Printf("%s: connection closed\n", err)
+			return
+		}
+		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
+		if err != nil {
+			networking.WriteError(true, conn)
+			log.Println(err)
+			return
+		}
+		_, err = io.Copy(file, netfile.Actfile)
+		if err != nil {
+			networking.WriteError(true, conn)
+			log.Println(err)
+			return
+		}
 		file.Close()
 	}
+	log.Println("stopped receiving upload")
 }
 
-func download(conn net.Conn) {
-	fmt.Println("DOWNLOAD")
+func sendToClient(conn net.Conn, exeDir string) {
+	defer conn.Close()
+	log.Println("started providing download")
 
-	game := networking.DeserializeString(conn)
-	dir := filepath.Join(".", game.Actstr)
-	_, err := os.Stat(dir)
+	game, err := networking.ReadString(conn)
+	if err != nil {
+		log.Printf("%s: connection closed\n", err)
+		return
+	}
+	dir := filepath.Join(exeDir, game.Actstr)
+	_, err = os.Stat(dir)
 	if os.IsNotExist(err) {
+		networking.WriteError(true, conn)
+		log.Println(err)
 		return
 	}
 
-	names, err := os.ReadDir(dir)
-	networking.SerializeInt(uint64(len(names)), conn)
-	for _, name := range names {
-		if !name.IsDir() {
-			file, err := os.Open(filepath.Join(dir, name.Name()))
+	saves, err := os.ReadDir(dir)
+	if err != nil {
+		networking.WriteError(true, conn)
+		log.Println(err)
+		return
+	}
+	networking.WriteInt(uint64(len(saves)), conn)
+	for _, save := range saves {
+		if !save.IsDir() {
+			file, err := os.Open(filepath.Join(dir, save.Name()))
 			if err != nil {
-				panic(err)
+				networking.WriteError(true, conn)
+				log.Println(err)
+				return
 			}
-			networking.SerializeFile(networking.BuildNetfile(file), conn)
+			netfile := networking.BuildNetfile(file)
+			networking.WriteFile(netfile, conn)
+			file.Close()
 		}
 	}
+	log.Println("stopped providing download")
+}
+
+func sendGames(conn net.Conn, exeDir string) {
+	log.Println("sending games")
+	entries, err := os.ReadDir(exeDir)
+	if err != nil {
+		networking.WriteError(true, conn)
+		log.Println(err)
+		return
+	}
+
+	games := make([]string, 0)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			games = append(games, entry.Name())
+		}
+	}
+
+	networking.WriteInt(uint64(len(games)), conn)
+
+	for _, game := range games {
+		networking.WriteString(networking.BuildNetstring(game), conn)
+	}
+	log.Println("stopped sending games")
 }

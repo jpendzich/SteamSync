@@ -1,80 +1,68 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"log"
 	"net"
 	"os"
-	"path/filepath"
 
-	networking "github.com/HackJack14/SteamSync/Networking"
+	internal "github.com/HackJack14/SteamSync/Client/Internal"
+	window "github.com/HackJack14/SteamSync/Client/Window"
 )
 
 func main() {
-	if len(os.Args) < 4 {
-		fmt.Println("Insufficient number of arguments")
-		return
-	}
-	request := os.Args[1]
+	clientApp := window.NewClientWindow()
+	clientApp.Init()
+	clientApp.OkClicked = start
+	clientApp.CancelClicked = exit
+	clientApp.OnIPReceived = getGames
+	clientApp.Show()
 
-	conn, err := net.Dial("tcp", "192.168.178.58:8080")
+	// if len(os.Args) == 1 {
+	// 	fmt.Println("Commands:")
+	// 	fmt.Println("\t<IPAddress> UPLOAD <Game> <Directory with Savefiles>")
+	// 	fmt.Println("\t<IPAddress> DOWNLOAD <Game> <Where to save the Savefiles>")
+	// }
+
+	// ipaddress := os.Args[1]
+	// request := os.Args[2]
+	// game := os.Args[3]
+	// dir := os.Args[4]
+
+}
+
+func start(cla *window.ClientWindow) {
+	ipaddress := cla.GetIP()
+	request := cla.GetRequest()
+	game := cla.GetGame()
+	dir := cla.GetDir()
+
+	conn, err := net.Dial("tcp", ipaddress+":8080")
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer conn.Close()
 
 	switch request {
 	case "UPLOAD":
-		upload(conn)
+		internal.UploadGameSaves(conn, game, dir)
 	case "DOWNLOAD":
-		download(conn)
+		internal.DownloadGameSaves(conn, game, dir)
 	}
-
 }
 
-func upload(conn net.Conn) {
-	game := os.Args[2]
-	dir := os.Args[3]
-	entries, err := os.ReadDir(dir)
+func getGames(cla *window.ClientWindow) {
+	ipaddress := cla.GetIP()
+
+	conn, err := net.Dial("tcp", ipaddress+":8080")
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
+	defer conn.Close()
 
-	var saves []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			saves = append(saves, entry.Name())
-		}
-	}
-
-	networking.SerializeString(networking.BuildNetstring("UPLOAD"), conn)
-	networking.SerializeString(networking.BuildNetstring(game), conn)
-	networking.SerializeInt(uint64(len(saves)), conn)
-	for _, save := range saves {
-		fmt.Println(save)
-		file, err := os.Open(dir + "/" + save)
-		if err != nil {
-			panic(err)
-		}
-		networking.SerializeFile(networking.BuildNetfile(file), conn)
-	}
+	cla.SetGames(internal.GetGames(conn))
 }
 
-func download(conn net.Conn) {
-	game := os.Args[2]
-	dir := os.Args[3]
-
-	networking.SerializeString(networking.BuildNetstring("DOWNLOAD"), conn)
-	networking.SerializeString(networking.BuildNetstring(game), conn)
-
-	numsaves := networking.DeserializeInt(conn)
-	for i := 0; i < int(numsaves); i++ {
-		netfile := networking.DeserializeFile(conn)
-		file, err := os.Create(filepath.Join(dir, netfile.Name.Actstr))
-		if err != nil {
-			panic(err)
-		}
-		io.Copy(file, netfile.Actfile)
-		file.Close()
-	}
+func exit(cla *window.ClientWindow) {
+	cla.Close()
+	os.Exit(0)
 }

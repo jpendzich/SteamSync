@@ -1,6 +1,5 @@
 *.exe
 *.dll
 *.settings
-server
-client
-*.sh
+./server
+./client

@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	internal "github.com/HackJack14/SteamSync/Client/Internal"
 )
 
 type ClientWindowEvent func(*ClientWindow)
@@ -31,6 +32,7 @@ type ClientWindow struct {
 type UploadTab struct {
 	labelNewGame       *widget.Label
 	entryNewGame       *widget.Entry
+	btnSearchGameSaves *widget.Button
 	labelExistingGame  *widget.Label
 	selectExistingGame *widget.Select
 	labelDirectory     *widget.Label
@@ -65,6 +67,7 @@ func (cla *ClientWindow) Init() {
 
 	cla.upTab.labelNewGame = widget.NewLabel("New Game:")
 	cla.upTab.entryNewGame = widget.NewEntry()
+	cla.upTab.btnSearchGameSaves = widget.NewButton("Search", func() { cla.searchGameSaves(cla.upTab.entryNewGame.Text, cla.upTab.entryDirectory) })
 	cla.upTab.labelExistingGame = widget.NewLabel("Existing Game")
 	cla.upTab.selectExistingGame = widget.NewSelect([]string{}, func(s string) {})
 	cla.upTab.labelDirectory = widget.NewLabel("Save Directory")
@@ -76,8 +79,9 @@ func (cla *ClientWindow) Init() {
 
 	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
 
+	contNewGame := container.NewStack(cla.upTab.entryNewGame, container.NewHBox(layout.NewSpacer(), cla.upTab.btnSearchGameSaves))
 	contFolderOpenUpload := container.NewStack(cla.upTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.upTab.btnOpenDialog))
-	contUpload := container.NewVBox(cla.upTab.labelNewGame, cla.upTab.entryNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, contFolderOpenUpload)
+	contUpload := container.NewVBox(cla.upTab.labelNewGame, contNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, contFolderOpenUpload)
 
 	contFolderOpenDownload := container.NewStack(cla.downTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.downTab.btnOpenDialog))
 	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, contFolderOpenDownload)
@@ -115,6 +119,15 @@ func (cla *ClientWindow) openDirDialog(outputEntry *widget.Entry) {
 			outputEntry.SetText(uri.Path())
 		}
 	}, cla.window)
+}
+
+func (cla *ClientWindow) searchGameSaves(game string, output *widget.Entry) {
+	windows, _, err := internal.GetSaves(game)
+	if err != nil {
+		log.Println(err)
+	}
+
+	output.SetText(internal.ExractFullPath(windows))
 }
 
 func (cla *ClientWindow) SetGames(games []string) {

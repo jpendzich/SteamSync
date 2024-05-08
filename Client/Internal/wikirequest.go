@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"log"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -29,4 +32,19 @@ func GetSaves(name string) (string, string, error) {
 		return true
 	})
 	return windows, linux, nil
+}
+
+func ExractFullPath(path string) string {
+	fullpath := ""
+	regex, err := regexp.Compile(`%\w*%`)
+	if err != nil {
+		log.Println(err)
+	}
+	env := string(regex.Find([]byte(path)))
+	envval := strings.ReplaceAll(env, "%", "")
+	envval = os.Getenv(envval)
+
+	fullpath = strings.Replace(path, env, envval, 1)
+
+	return fullpath
 }

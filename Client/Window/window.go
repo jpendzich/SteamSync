@@ -2,6 +2,7 @@ package window
 
 import (
 	"log"
+	"runtime"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -122,12 +123,20 @@ func (cla *ClientWindow) openDirDialog(outputEntry *widget.Entry) {
 }
 
 func (cla *ClientWindow) searchGameSaves(game string, output *widget.Entry) {
-	windows, _, err := internal.GetSaves(game)
+	windows, linux, err := internal.GetSaves(game)
 	if err != nil {
 		log.Println(err)
 	}
 
-	output.SetText(internal.ExractFullPath(windows))
+	save := ""
+	switch runtime.GOOS {
+	case "windows":
+		save = windows
+	case "linux":
+		save = linux
+	}
+
+	output.SetText(internal.ExractFullPath(save))
 }
 
 func (cla *ClientWindow) SetGames(games []string) {

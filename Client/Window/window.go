@@ -2,6 +2,7 @@ package window
 
 import (
 	"log"
+	"os"
 	"runtime"
 
 	"fyne.io/fyne/v2"
@@ -12,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	internal "github.com/HackJack14/SteamSync/Client/Internal"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 type ClientWindowEvent func(*ClientWindow)
@@ -56,6 +58,7 @@ func NewClientWindow() *ClientWindow {
 func (cla *ClientWindow) Init() {
 	cla.app = app.New()
 	cla.app.Settings().SetTheme(theme.DarkTheme())
+	setScaling()
 	cla.window = cla.app.NewWindow("SteamSync Client")
 	cla.window.Resize(fyne.NewSize(500, 200))
 	cla.window.SetMaster()
@@ -137,6 +140,29 @@ func (cla *ClientWindow) searchGameSaves(game string, output *widget.Entry) {
 	}
 
 	output.SetText(internal.ExractFullPath(save))
+}
+
+func setScaling() {
+	var actScreenWidth int
+
+	err := glfw.Init()
+	if err != nil {
+		actScreenWidth = 100
+	}
+	defer glfw.Terminate()
+
+	monitor := glfw.GetPrimaryMonitor()
+	actScreenWidth, _ = monitor.GetPhysicalSize()
+
+	log.Println(actScreenWidth)
+
+	if actScreenWidth <= 100 {
+		os.Setenv("FYNE_SCALE", "0.2")
+	} else if actScreenWidth > 100 && actScreenWidth <= 200 {
+		os.Setenv("FYNE_SCALE", "0.75")
+	} else {
+		os.Setenv("FYNE_SCALE", "1")
+	}
 }
 
 func (cla *ClientWindow) SetGames(games []string) {

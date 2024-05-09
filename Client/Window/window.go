@@ -97,11 +97,11 @@ func (cla *ClientWindow) Show() {
 	dialog.ShowForm("IPAddress", "Ok", "Cancel", []*widget.FormItem{widget.NewFormItem("Input the servers ipaddress", entryIP)}, func(b bool) {
 		if b {
 			cla.ipadress = entryIP.Text
+			cla.OnIPReceived(cla)
 		} else {
 			cla.Close()
 		}
 	}, cla.window)
-	cla.OnIPReceived(cla)
 	cla.window.ShowAndRun()
 }
 

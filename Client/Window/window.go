@@ -24,7 +24,8 @@ type ClientWindow struct {
 	OnIPReceived  ClientWindowEvent
 	app           fyne.App
 	window        fyne.Window
-	ipadress      string
+	ipaddress     string
+	dialog        IPDialog
 	upTab         UploadTab
 	downTab       DownloadTab
 	contTabs      *container.AppTabs
@@ -51,6 +52,13 @@ type DownloadTab struct {
 	btnOpenDialog  *widget.Button
 }
 
+type IPDialog struct {
+	labelIPAddress *widget.Label
+	entryIPAddress *widget.Entry
+	btnOk          *widget.Button
+	btnCancel      *widget.Button
+}
+
 func NewClientWindow() *ClientWindow {
 	return &ClientWindow{}
 }
@@ -62,6 +70,14 @@ func (cla *ClientWindow) Init() {
 	cla.window = cla.app.NewWindow("SteamSync Client")
 	cla.window.Resize(fyne.NewSize(500, 200))
 	cla.window.SetMaster()
+
+	cla.dialog.labelIPAddress = widget.NewLabel("Input your IP-Address:")
+	cla.dialog.entryIPAddress = widget.NewEntry()
+	cla.dialog.btnOk = widget.NewButton("OK", func() { cla.dialog.okClicked(cla) })
+	cla.dialog.btnCancel = widget.NewButton("Cancel", func() { cla.dialog.cancelClicked(cla) })
+	contBtns := container.NewHBox(cla.dialog.btnOk, cla.dialog.btnCancel)
+	contMain := container.NewVBox(cla.dialog.labelIPAddress, cla.dialog.entryIPAddress, contBtns)
+	cla.window.SetContent(contMain)
 
 	cla.downTab.labelGame = widget.NewLabel("Game:")
 	cla.downTab.selectGame = widget.NewSelect([]string{}, func(s string) {})
@@ -80,31 +96,9 @@ func (cla *ClientWindow) Init() {
 
 	cla.btnOk = widget.NewButton("Ok", func() { cla.OkClicked(cla) })
 	cla.btnCancel = widget.NewButton("Cancel", func() { cla.CancelClicked(cla) })
-
-	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
-
-	contNewGame := container.NewStack(cla.upTab.entryNewGame, container.NewHBox(layout.NewSpacer(), cla.upTab.btnSearchGameSaves))
-	contFolderOpenUpload := container.NewStack(cla.upTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.upTab.btnOpenDialog))
-	contUpload := container.NewVBox(cla.upTab.labelNewGame, contNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, contFolderOpenUpload)
-
-	contFolderOpenDownload := container.NewStack(cla.downTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.downTab.btnOpenDialog))
-	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, contFolderOpenDownload)
-
-	cla.contTabs = container.NewAppTabs(container.NewTabItem("Upload", contUpload), container.NewTabItem("Download", contDownload))
-	contMain := container.NewVBox(cla.contTabs, contBtns)
-	cla.window.SetContent(contMain)
 }
 
 func (cla *ClientWindow) Show() {
-	entryIP := widget.NewEntry()
-	dialog.ShowForm("IPAddress", "Ok", "Cancel", []*widget.FormItem{widget.NewFormItem("Input the servers ipaddress", entryIP)}, func(b bool) {
-		if b {
-			cla.ipadress = entryIP.Text
-			cla.OnIPReceived(cla)
-		} else {
-			cla.Close()
-		}
-	}, cla.window)
 	cla.window.ShowAndRun()
 }
 
@@ -154,8 +148,6 @@ func setScaling() {
 	monitor := glfw.GetPrimaryMonitor()
 	actScreenWidth, _ = monitor.GetPhysicalSize()
 
-	log.Println(actScreenWidth)
-
 	if actScreenWidth <= 100 {
 		os.Setenv("FYNE_SCALE", "0.2")
 	} else if actScreenWidth > 100 && actScreenWidth <= 200 {
@@ -171,7 +163,7 @@ func (cla *ClientWindow) SetGames(games []string) {
 }
 
 func (cla *ClientWindow) GetIP() string {
-	return cla.ipadress
+	return cla.ipaddress
 }
 
 func (cla *ClientWindow) GetRequest() string {
@@ -200,4 +192,27 @@ func (cla *ClientWindow) GetDir() string {
 	} else {
 		return cla.downTab.entryDirectory.Text
 	}
+}
+
+func (dialog *IPDialog) okClicked(cla *ClientWindow) {
+	cla.ipaddress = dialog.entryIPAddress.Text
+
+	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
+
+	contNewGame := container.NewStack(cla.upTab.entryNewGame, container.NewHBox(layout.NewSpacer(), cla.upTab.btnSearchGameSaves))
+	contFolderOpenUpload := container.NewStack(cla.upTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.upTab.btnOpenDialog))
+	contUpload := container.NewVBox(cla.upTab.labelNewGame, contNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, contFolderOpenUpload)
+
+	contFolderOpenDownload := container.NewStack(cla.downTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.downTab.btnOpenDialog))
+	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, contFolderOpenDownload)
+
+	cla.contTabs = container.NewAppTabs(container.NewTabItem("Upload", contUpload), container.NewTabItem("Download", contDownload))
+	contMain := container.NewVBox(cla.contTabs, contBtns)
+	cla.window.SetContent(contMain)
+
+	cla.OnIPReceived(cla)
+}
+
+func (dialog *IPDialog) cancelClicked(cla *ClientWindow) {
+	cla.Close()
 }

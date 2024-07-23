@@ -7,4 +7,3 @@ This program is supposed to replace the Steam Cloud for games that do not suppor
  - Possibly make local database by webscraping
  - TLS encryption
  - build steamdeck path dinamically using the windows path
- - make own dialog for ip

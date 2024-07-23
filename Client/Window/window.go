@@ -22,6 +22,7 @@ type ClientWindow struct {
 	OkClicked     ClientWindowEvent
 	CancelClicked ClientWindowEvent
 	OnIPReceived  ClientWindowEvent
+	isDialogOpen  bool
 	app           fyne.App
 	window        fyne.Window
 	ipaddress     string
@@ -73,11 +74,13 @@ func (cla *ClientWindow) Init() {
 
 	cla.dialog.labelIPAddress = widget.NewLabel("Input your IP-Address:")
 	cla.dialog.entryIPAddress = widget.NewEntry()
+	cla.dialog.entryIPAddress.OnSubmitted = func(s string) { cla.dialog.okClicked(cla) }
 	cla.dialog.btnOk = widget.NewButton("OK", func() { cla.dialog.okClicked(cla) })
 	cla.dialog.btnCancel = widget.NewButton("Cancel", func() { cla.dialog.cancelClicked(cla) })
 	contBtns := container.NewHBox(cla.dialog.btnOk, cla.dialog.btnCancel)
 	contMain := container.NewVBox(cla.dialog.labelIPAddress, cla.dialog.entryIPAddress, contBtns)
 	cla.window.SetContent(contMain)
+	cla.isDialogOpen = true
 
 	cla.downTab.labelGame = widget.NewLabel("Game:")
 	cla.downTab.selectGame = widget.NewSelect([]string{}, func(s string) {})
@@ -209,6 +212,7 @@ func (dialog *IPDialog) okClicked(cla *ClientWindow) {
 	cla.contTabs = container.NewAppTabs(container.NewTabItem("Upload", contUpload), container.NewTabItem("Download", contDownload))
 	contMain := container.NewVBox(cla.contTabs, contBtns)
 	cla.window.SetContent(contMain)
+	cla.isDialogOpen = false
 
 	cla.OnIPReceived(cla)
 }

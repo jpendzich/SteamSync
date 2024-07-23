@@ -102,6 +102,30 @@ func (cla *ClientWindow) Init() {
 }
 
 func (cla *ClientWindow) Show() {
+
+	contBtns := container.NewHBox(cla.btnOk, cla.btnCancel)
+
+	contFolderOpenUpload := container.NewStack(cla.upTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.upTab.btnOpenDialog))
+	contUpload := container.NewVBox(cla.upTab.labelNewGame, cla.upTab.entryNewGame, cla.upTab.labelExistingGame, cla.upTab.selectExistingGame, cla.upTab.labelDirectory, contFolderOpenUpload)
+
+	contFolderOpenDownload := container.NewStack(cla.downTab.entryDirectory, container.NewHBox(layout.NewSpacer(), cla.downTab.btnOpenDialog))
+	contDownload := container.NewVBox(cla.downTab.labelGame, cla.downTab.selectGame, cla.downTab.labelDirectory, contFolderOpenDownload)
+
+	cla.contTabs = container.NewAppTabs(container.NewTabItem("Upload", contUpload), container.NewTabItem("Download", contDownload))
+	contMain := container.NewVBox(cla.contTabs, contBtns)
+	cla.window.SetContent(contMain)
+}
+
+func (cla *ClientWindow) Show() {
+	entryIP := widget.NewEntry()
+	dialog.ShowForm("IPAddress", "Ok", "Cancel", []*widget.FormItem{widget.NewFormItem("Input the servers ipaddress", entryIP)}, func(b bool) {
+		if b {
+			cla.ipadress = entryIP.Text
+		} else {
+			cla.Close()
+		}
+	}, cla.window)
+	cla.OnIPReceived(cla)
 	cla.window.ShowAndRun()
 }
 

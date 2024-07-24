@@ -1,6 +1,6 @@
 This program is supposed to replace the Steam Cloud for games that do not support it such as Fallout 3. It is primarily supposed to be used with the Steam Deck in the future 
 
-#TODO
+# TODO
  - Using binary.Write and binary.Read
  - Steamsaves location saver
  - Finding saves using api calls to https://www.pcgamingwiki.com/wiki/Home

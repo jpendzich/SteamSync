@@ -30,7 +30,7 @@ func BuildSteamDeckPath(linpath string, winpath string) string {
 
 	fullpath := ""
 
-	fullpath = strings.Replace(linpath, "<SteamLibrary-folder>", "/home/deck/.steam", 1)
+	fullpath = strings.Replace(linpath, "<SteamLibrary-folder>", "/home/deck/.steam/steam", 1)
 
 	winpath = strings.ReplaceAll(winpath, "\\", "/")
 

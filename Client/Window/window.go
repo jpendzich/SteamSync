@@ -128,15 +128,12 @@ func (cla *ClientWindow) searchGameSaves(game string, output *widget.Entry) {
 		log.Println(err)
 	}
 
-	save := ""
 	switch runtime.GOOS {
 	case "windows":
-		save = windows
+		output.SetText(internal.BuildWindowsPath(windows))
 	case "linux":
-		save = linux
+		output.SetText(internal.BuildSteamDeckPath(linux, windows))
 	}
-
-	output.SetText(internal.ExractFullPath(save))
 }
 
 func setScaling() {

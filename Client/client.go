@@ -5,64 +5,51 @@ import (
 	"net"
 	"os"
 
-	internal "github.com/HackJack14/SteamSync/Client/Internal"
-	window "github.com/HackJack14/SteamSync/Client/Window"
+	"github.com/schollz/peerdiscovery"
 )
 
+var peerAddress string
+
 func main() {
-	clientApp := window.NewClientWindow()
-	clientApp.Init()
-	clientApp.OkClicked = start
-	clientApp.CancelClicked = exit
-	clientApp.OnIPReceived = getGames
-	clientApp.Show()
+	discoveries, err := peerdiscovery.Discover(peerdiscovery.Settings{Limit: 1})
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if len(discoveries) < 1 {
+		log.Fatalln("didnt find any connections")
+	}
+	peerAddress = discoveries[0].Address
 
-	// if len(os.Args) == 1 {
-	// 	fmt.Println("Commands:")
-	// 	fmt.Println("\t<IPAddress> UPLOAD <Game> <Directory with Savefiles>")
-	// 	fmt.Println("\t<IPAddress> DOWNLOAD <Game> <Where to save the Savefiles>")
-	// }
-
-	// ipaddress := os.Args[1]
-	// request := os.Args[2]
-	// game := os.Args[3]
-	// dir := os.Args[4]
-
+	if os.Args[1] == "1" {
+		listen()
+	} else {
+		send()
+	}
 }
 
-func start(cla *window.ClientWindow) {
-	ipaddress := cla.GetIP()
-	request := cla.GetRequest()
-	game := cla.GetGame()
-	dir := cla.GetDir()
-
-	conn, err := net.Dial("tcp", ipaddress+":8080")
+func listen() {
+	listener, err := net.Listen("tcp", ":10000")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	conn, err := listener.Accept()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer conn.Close()
-
-	switch request {
-	case "UPLOAD":
-		internal.UploadGameSaves(conn, game, dir)
-	case "DOWNLOAD":
-		internal.DownloadGameSaves(conn, game, dir)
-	}
-}
-
-func getGames(cla *window.ClientWindow) {
-	ipaddress := cla.GetIP()
-
-	conn, err := net.Dial("tcp", ipaddress+":8080")
+	buf := make([]byte, 1024)
+	_, err = conn.Read(buf)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer conn.Close()
-
-	cla.SetGames(internal.GetGames(conn))
+	log.Println(string(buf))
 }
 
-func exit(cla *window.ClientWindow) {
-	cla.Close()
-	os.Exit(0)
+func send() {
+	conn, err := net.Dial("tcp", net.JoinHostPort(peerAddress, "10000"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	buf := []byte("das ist ein test string")
+	conn.Write(buf)
 }

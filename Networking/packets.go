@@ -10,20 +10,33 @@ type Packet interface {
 	Deserialize(src io.Reader) error
 }
 
+type Request struct {
+	Version   uint
+	ErrorCode uint
+}
+
+type Response struct {
+	Version   uint
+	ErrorCode uint
+}
+
 type UploadFileRequest struct {
-	name string
-	data bytes.Buffer
+	Base Request
+	Name string
+	Data bytes.Buffer
 }
 
 type UploadFileResponse struct {
-	errorCode uint
+	Base Response
 }
 
 type DownloadFileRequest struct {
-	name string
-	data bytes.Buffer
+	Base Request
+	Game string
+	Save string
 }
 
 type DownloadFileResponse struct {
-	errorCode uint
+	Base Response
+	Data bytes.Buffer
 }

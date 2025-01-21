@@ -4,22 +4,12 @@ import (
 	"log"
 	"net"
 	"os"
+	"path"
 
-	"github.com/schollz/peerdiscovery"
+	"github.com/HackJack14/SteamSync/network"
 )
 
-var peerAddress string
-
 func main() {
-	discoveries, err := peerdiscovery.Discover(peerdiscovery.Settings{Limit: 1})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if len(discoveries) < 1 {
-		log.Fatalln("didnt find any connections")
-	}
-	peerAddress = discoveries[0].Address
-
 	if os.Args[1] == "1" {
 		listen()
 	} else {
@@ -28,28 +18,60 @@ func main() {
 }
 
 func listen() {
-	listener, err := net.Listen("tcp", ":10000")
+	listener, err := net.Listen("tcp", "127.0.0.1:9999")
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer listener.Close()
+
 	conn, err := listener.Accept()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer conn.Close()
-	buf := make([]byte, 1024)
-	_, err = conn.Read(buf)
+
+	connection := network.NewConnection(&conn)
+	network.RegisterHandler()
+	packetType, err := connection.ReadPacketType()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	log.Println(string(buf))
+	err = network.HandlePacket(connection, packetType)
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func send() {
-	conn, err := net.Dial("tcp", net.JoinHostPort(peerAddress, "10000"))
+	conn, err := net.Dial("tcp", "127.0.0.1:9999")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	buf := []byte("das ist ein test string")
-	conn.Write(buf)
+	defer conn.Close()
+
+	connection := network.NewConnection(&conn)
+	sender := network.NewRequestSender(connection)
+
+	// file transfer worked successfully
+	test := network.NewDownloadFileRequest()
+	test.Game = "Fallout 3"
+	test.Save = "1-Outside"
+
+	testResponse := network.NewDownloadFileResponse()
+
+	file, err := os.Create(path.Join(test.Game, test.Save))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer file.Close()
+
+	log.Println(testResponse)
+	err = sender.SendRequestReadBinary(test.PacketType, test, testResponse, file)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if testResponse.ErrorCode == 0 {
+		log.Println("successfully downloaded file")
+	}
 }

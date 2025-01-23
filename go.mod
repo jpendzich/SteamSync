@@ -5,6 +5,7 @@ go 1.21.4
 require (
 	gioui.org v0.8.0
 	github.com/kelindar/binary v1.0.19
+	github.com/schollz/peerdiscovery v1.7.6
 )
 
 require (

@@ -120,7 +120,7 @@ func run(window *app.Window) error {
 
 			switch stepCount {
 			case peer:
-				pSelector.Layout(gtx, theme)
+				// pSelector.Layout(gtx, theme)
 			case game:
 				gSelector.Layout(gtx, theme)
 			case sync:
@@ -132,9 +132,9 @@ func run(window *app.Window) error {
 	}
 }
 
-func (selector *peerSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	return selector.list.Layout(gtx, 0)
-}
+// func (selector *peerSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+// 	return selector.list.Layout(gtx, 0)
+// }
 
 func (button *gameButton) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	return material.Button(theme, &button.button, button.game).Layout(gtx)

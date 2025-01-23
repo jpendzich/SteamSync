@@ -25,7 +25,7 @@ func GetAllPeers() ([]Peer, error) {
 		return nil, err
 	}
 
-	peers := make([]peer, len(discovered))
+	peers := make([]Peer, len(discovered))
 	for i := 0; i < len(peers); i += 1 {
 		peers[i].IpAdress = discovered[i].Address
 		peers[i].Hostname = string(discovered[i].Payload)

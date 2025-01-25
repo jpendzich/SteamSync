@@ -58,7 +58,7 @@ func RenderWindow() {
 	app.Main()
 }
 
-func readPeers(peers chan []network.Peer, stop chan bool) {
+func readPeers(peers chan []network.Peer, stop chan bool, window *app.Window) {
 	for {
 		stopping := false
 		select {
@@ -75,6 +75,7 @@ func readPeers(peers chan []network.Peer, stop chan bool) {
 			return
 		}
 		peers <- newPeers
+		window.Invalidate()
 	}
 }
 
@@ -118,8 +119,8 @@ func run(window *app.Window) error {
 	theme := material.NewTheme()
 	peers = make([]network.Peer, 0)
 	stopDiscovery := make(chan bool)
-	peerChan := make(chan []network.Peer)
-	go readPeers(peerChan, stopDiscovery)
+	peerChan := make(chan []network.Peer, 1)
+	go readPeers(peerChan, stopDiscovery, window)
 	gamesList, err := readGames()
 	gSelector.buttonsList = make([]gameButton, 0)
 	for _, game := range gamesList {

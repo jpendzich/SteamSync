@@ -10,6 +10,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/HackJack14/SteamSync/network"
 )
 
 var (
@@ -57,8 +58,24 @@ func RenderWindow() {
 	app.Main()
 }
 
-func readPeers() {
+func readPeers(peers chan []network.Peer, stop chan bool) {
+	for {
+		stopping := false
+		select {
+		case stopping = <-stop:
+		default:
+			stopping = false
+		}
+		if stopping {
+			return
+		}
 
+		newPeers, err := network.GetAllPeers()
+		if err != nil {
+			return
+		}
+		peers <- newPeers
+	}
 }
 
 func readGames() ([]string, error) {
@@ -77,7 +94,8 @@ func readGames() ([]string, error) {
 }
 
 var (
-	stepCount    step   = 0
+	stepCount    step = 0
+	peers        []network.Peer
 	selectedGame string = ""
 	pSelector           = peerSelector{}
 	gSelector           = gameSelector{
@@ -98,6 +116,10 @@ var (
 
 func run(window *app.Window) error {
 	theme := material.NewTheme()
+	peers = make([]network.Peer, 0)
+	stopDiscovery := make(chan bool)
+	peerChan := make(chan []network.Peer)
+	go readPeers(peerChan, stopDiscovery)
 	gamesList, err := readGames()
 	gSelector.buttonsList = make([]gameButton, 0)
 	for _, game := range gamesList {
@@ -120,7 +142,12 @@ func run(window *app.Window) error {
 
 			switch stepCount {
 			case peer:
-				// pSelector.Layout(gtx, theme)
+				select {
+				case newPeers := <-peerChan:
+					peers = newPeers
+				default:
+				}
+				pSelector.Layout(gtx, theme)
 			case game:
 				gSelector.Layout(gtx, theme)
 			case sync:
@@ -132,9 +159,11 @@ func run(window *app.Window) error {
 	}
 }
 
-// func (selector *peerSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-// 	return selector.list.Layout(gtx, 0)
-// }
+func (selector *peerSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	return selector.list.Layout(gtx, len(peers), func(gtx layout.Context, index int) layout.Dimensions {
+		return material.Button(theme, nil, peers[index].Hostname).Layout(gtx)
+	})
+}
 
 func (button *gameButton) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	return material.Button(theme, &button.button, button.game).Layout(gtx)

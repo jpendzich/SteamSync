@@ -19,7 +19,8 @@ func GetAllPeers() ([]Peer, error) {
 	}
 	discovered, err := peerdiscovery.Discover(peerdiscovery.Settings{
 		Payload:   []byte(hostname),
-		TimeLimit: 5 * time.Second,
+		Delay:     20 * time.Millisecond,
+		TimeLimit: 100 * time.Millisecond,
 	})
 	if err != nil {
 		return nil, err

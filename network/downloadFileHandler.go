@@ -3,7 +3,7 @@ package network
 import (
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 type DownloadFileHandler struct {
@@ -17,7 +17,7 @@ func (handler *DownloadFileHandler) Process(conn *Connection) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Open(path.Join(request.Game, request.Save))
+	file, err := os.Open(filepath.Join(request.Game, request.Save))
 	if err != nil {
 		return err
 	}

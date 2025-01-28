@@ -1,7 +1,6 @@
 package network
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -20,8 +19,8 @@ func GetAllPeers() ([]Peer, error) {
 	}
 	discovered, err := peerdiscovery.Discover(peerdiscovery.Settings{
 		Payload:   []byte(hostname),
-		Delay:     20 * time.Millisecond,
-		TimeLimit: 100 * time.Millisecond,
+		Delay:     1 * time.Second,
+		TimeLimit: 2 * time.Second,
 	})
 	if err != nil {
 		return nil, err
@@ -29,7 +28,6 @@ func GetAllPeers() ([]Peer, error) {
 
 	peers := make([]Peer, len(discovered))
 	for i := 0; i < len(peers); i += 1 {
-		log.Println(peers[i])
 		peers[i].IpAdress = discovered[i].Address
 		peers[i].Hostname = string(discovered[i].Payload)
 	}

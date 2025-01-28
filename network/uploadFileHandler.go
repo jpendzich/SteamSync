@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 type UploadFileHandler struct {
@@ -23,7 +23,7 @@ func (handler *UploadFileHandler) Process(conn *Connection) error {
 	} else if err != nil {
 		return err
 	}
-	file, err := os.Create(path.Join(request.Game, request.Save))
+	file, err := os.Create(filepath.Join(request.Game, request.Save))
 	if err != nil {
 		return err
 	}

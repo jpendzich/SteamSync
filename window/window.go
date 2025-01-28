@@ -3,7 +3,7 @@ package window
 import (
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 
 	"gioui.org/app"
 	"gioui.org/layout"
@@ -14,9 +14,15 @@ import (
 )
 
 var (
+	OnSelectedPeer func(peer network.Peer)
 	OnUploadGame   func(game string) error
 	OnDownloadGame func(game string) error
 )
+
+type peerButton struct {
+	peer   network.Peer
+	button widget.Clickable
+}
 
 type gameButton struct {
 	game   string
@@ -32,7 +38,8 @@ const (
 )
 
 type peerSelector struct {
-	list layout.List
+	buttonList []peerButton
+	list       layout.List
 }
 
 type gameSelector struct {
@@ -80,7 +87,7 @@ func readPeers(peers chan []network.Peer, stop chan bool, window *app.Window) {
 }
 
 func readGames() ([]string, error) {
-	entries, err := os.ReadDir(path.Dir(os.Args[0]))
+	entries, err := os.ReadDir(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return []string{}, err
 	}
@@ -95,11 +102,16 @@ func readGames() ([]string, error) {
 }
 
 var (
-	stepCount    step = 0
-	peers        []network.Peer
+	stepCount    step   = 0
 	selectedGame string = ""
-	pSelector           = peerSelector{}
-	gSelector           = gameSelector{
+	pSelector           = peerSelector{
+		list: layout.List{
+			Axis:        layout.Vertical,
+			Alignment:   layout.Middle,
+			ScrollToEnd: false,
+		},
+	}
+	gSelector = gameSelector{
 		list: layout.List{
 			Axis:        layout.Vertical,
 			Alignment:   layout.Middle,
@@ -117,7 +129,6 @@ var (
 
 func run(window *app.Window) error {
 	theme := material.NewTheme()
-	peers = make([]network.Peer, 0)
 	stopDiscovery := make(chan bool)
 	peerChan := make(chan []network.Peer, 1)
 	go readPeers(peerChan, stopDiscovery, window)
@@ -143,9 +154,13 @@ func run(window *app.Window) error {
 
 			switch stepCount {
 			case peer:
+				var peers []network.Peer
 				select {
-				case newPeers := <-peerChan:
-					peers = newPeers
+				case peers = <-peerChan:
+					pSelector.buttonList = make([]peerButton, len(peers))
+					for i, p := range peers {
+						pSelector.buttonList[i].peer = p
+					}
 				default:
 				}
 				pSelector.Layout(gtx, theme)
@@ -161,9 +176,20 @@ func run(window *app.Window) error {
 }
 
 func (selector *peerSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	return selector.list.Layout(gtx, len(peers), func(gtx layout.Context, index int) layout.Dimensions {
-		return material.Button(theme, nil, peers[index].Hostname).Layout(gtx)
+	return selector.list.Layout(gtx, len(pSelector.buttonList), func(gtx layout.Context, index int) layout.Dimensions {
+		if selector.buttonList[index].Clicked(gtx) {
+			stepCount = game
+		}
+		return selector.buttonList[index].Layout(gtx, theme)
 	})
+}
+
+func (button *peerButton) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	return material.Button(theme, &button.button, button.peer.Hostname).Layout(gtx)
+}
+
+func (button *peerButton) Clicked(gtx layout.Context) bool {
+	return button.button.Clicked(gtx)
 }
 
 func (button *gameButton) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
@@ -177,7 +203,7 @@ func (button *gameButton) Clicked(gtx layout.Context) bool {
 func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	return selector.list.Layout(gtx, len(selector.buttonsList), func(gtx layout.Context, index int) layout.Dimensions {
 		if selector.buttonsList[index].Clicked(gtx) {
-			stepCount = 1
+			stepCount = sync
 			selectedGame = gSelector.buttonsList[index].game
 		}
 		return selector.buttonsList[index].Layout(gtx, theme)

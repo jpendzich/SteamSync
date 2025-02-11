@@ -13,6 +13,7 @@ import (
 var currentPeer network.Peer
 
 func main() {
+	network.RegisterHandler()
 	go HandleNewConnections()
 	window.OnDownloadGame = DownloadGame
 	window.OnUploadGame = UploadGame
@@ -21,10 +22,12 @@ func main() {
 }
 
 func UploadGame(game string) error {
+	log.Println("uploading game")
 	conn, err := net.Dial("tcp", net.JoinHostPort(currentPeer.IpAdress, "9998"))
 	if err != nil {
 		log.Fatalln(err)
 	}
+	log.Println("dialed")
 	connection := network.NewConnection(&conn)
 	sender := network.NewRequestSender(connection)
 	entries, err := os.ReadDir(game)
@@ -72,7 +75,6 @@ func HandleNewConnections() {
 	}
 
 	connection := network.NewConnection(&conn)
-	network.RegisterHandler()
 
 	for {
 		packetType, err := connection.ReadPacketType()

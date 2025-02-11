@@ -10,6 +10,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/HackJack14/SteamSync/internal"
 	"github.com/HackJack14/SteamSync/network"
 )
 
@@ -29,6 +30,11 @@ type gameButton struct {
 	button widget.Clickable
 }
 
+type gameSearchBar struct {
+	lastSearch string
+	edit       widget.Editor
+}
+
 type step = int
 
 const (
@@ -45,6 +51,8 @@ type peerSelector struct {
 type gameSelector struct {
 	buttonsList []gameButton
 	list        layout.List
+	searchBar   gameSearchBar
+	flex        layout.Flex
 }
 
 type syncSelector struct {
@@ -102,7 +110,8 @@ func readGames() ([]string, error) {
 }
 
 var (
-	stepCount    step   = 0
+	access       internal.DbAccess
+	stepCount    step   = game
 	selectedGame string = ""
 	pSelector           = peerSelector{
 		list: layout.List{
@@ -117,6 +126,17 @@ var (
 			Alignment:   layout.Middle,
 			ScrollToEnd: false,
 		},
+		searchBar: gameSearchBar{
+			lastSearch: "",
+			edit: widget.Editor{
+				SingleLine: true,
+				Submit:     true,
+			},
+		},
+		flex: layout.Flex{
+			Alignment: layout.Middle,
+			Spacing:   layout.SpaceBetween,
+		},
 	}
 	sSelector = syncSelector{
 		flex: layout.Flex{
@@ -128,6 +148,8 @@ var (
 )
 
 func run(window *app.Window) error {
+	access = *internal.NewDbAccess()
+	defer access.Close()
 	theme := material.NewTheme()
 	stopDiscovery := make(chan bool)
 	peerChan := make(chan []network.Peer, 1)
@@ -178,6 +200,7 @@ func run(window *app.Window) error {
 func (selector *peerSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	return selector.list.Layout(gtx, len(pSelector.buttonList), func(gtx layout.Context, index int) layout.Dimensions {
 		if selector.buttonList[index].Clicked(gtx) {
+			OnSelectedPeer(selector.buttonList[index].peer)
 			stepCount = game
 		}
 		return selector.buttonList[index].Layout(gtx, theme)
@@ -200,14 +223,35 @@ func (button *gameButton) Clicked(gtx layout.Context) bool {
 	return button.button.Clicked(gtx)
 }
 
+func (searchBar *gameSearchBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	return material.Editor(theme, &searchBar.edit, "search for a game").Layout(gtx)
+}
+
 func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	return selector.list.Layout(gtx, len(selector.buttonsList), func(gtx layout.Context, index int) layout.Dimensions {
-		if selector.buttonsList[index].Clicked(gtx) {
-			stepCount = sync
-			selectedGame = gSelector.buttonsList[index].game
+	// only set lastSearch if edit.Text() changed
+	if selector.searchBar.lastSearch != selector.searchBar.edit.Text() {
+		selector.searchBar.lastSearch = selector.searchBar.edit.Text()
+		games := access.GetGameMatchingPattern(selector.searchBar.lastSearch)
+		selector.buttonsList = make([]gameButton, len(games))
+		log.Println(selector.searchBar.lastSearch)
+		log.Println(games)
+		for i, game := range games {
+			selector.buttonsList[i] = gameButton{
+				game: game,
+			}
 		}
-		return selector.buttonsList[index].Layout(gtx, theme)
-	})
+	}
+	return selector.flex.Layout(
+		gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return selector.searchBar.Layout(gtx, theme)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return selector.list.Layout(gtx, len(selector.buttonsList), func(gtx layout.Context, index int) layout.Dimensions {
+				return selector.buttonsList[index].Layout(gtx, theme)
+			})
+		}),
+	)
 }
 
 func (selector *syncSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {

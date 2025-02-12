@@ -31,8 +31,15 @@ type gameButton struct {
 }
 
 type gameSearchBar struct {
+	inset      layout.Inset
 	lastSearch string
 	edit       widget.Editor
+}
+
+type gameScrollBar struct {
+	scrollbar widget.Scrollbar
+	start     float32
+	end       float32
 }
 
 type step = int
@@ -49,10 +56,12 @@ type peerSelector struct {
 }
 
 type gameSelector struct {
-	buttonsList []gameButton
-	list        layout.List
-	searchBar   gameSearchBar
-	flex        layout.Flex
+	buttonsList   []gameButton
+	list          layout.List
+	scrollbar     gameScrollBar
+	searchBar     gameSearchBar
+	searchFlex    layout.Flex
+	scrollbarFlex layout.Flex
 }
 
 type syncSelector struct {
@@ -126,14 +135,27 @@ var (
 			Alignment:   layout.Middle,
 			ScrollToEnd: false,
 		},
+		scrollbar: gameScrollBar{},
 		searchBar: gameSearchBar{
 			lastSearch: "",
+			inset: layout.Inset{
+				Top:    5,
+				Bottom: 5,
+				Left:   5,
+				Right:  5,
+			},
 			edit: widget.Editor{
 				SingleLine: true,
 				Submit:     true,
 			},
 		},
-		flex: layout.Flex{
+		searchFlex: layout.Flex{
+			Axis:      layout.Vertical,
+			Alignment: layout.Middle,
+			Spacing:   layout.SpaceEnd,
+		},
+		scrollbarFlex: layout.Flex{
+			Axis:      layout.Horizontal,
 			Alignment: layout.Middle,
 			Spacing:   layout.SpaceBetween,
 		},
@@ -224,7 +246,13 @@ func (button *gameButton) Clicked(gtx layout.Context) bool {
 }
 
 func (searchBar *gameSearchBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	return material.Editor(theme, &searchBar.edit, "search for a game").Layout(gtx)
+	return searchBar.inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return material.Editor(theme, &searchBar.edit, "search for a game").Layout(gtx)
+	})
+}
+
+func (scrollBar *gameScrollBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	return material.Scrollbar(theme, &scrollBar.scrollbar).Layout(gtx, layout.Vertical, scrollBar.start, scrollBar.end)
 }
 
 func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
@@ -233,23 +261,50 @@ func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) 
 		selector.searchBar.lastSearch = selector.searchBar.edit.Text()
 		games := access.GetGameMatchingPattern(selector.searchBar.lastSearch)
 		selector.buttonsList = make([]gameButton, len(games))
-		log.Println(selector.searchBar.lastSearch)
-		log.Println(games)
 		for i, game := range games {
 			selector.buttonsList[i] = gameButton{
 				game: game,
 			}
 		}
 	}
-	return selector.flex.Layout(
+	// check for clicked button
+	for i := 0; i < len(selector.buttonsList); i++ {
+		if selector.buttonsList[i].Clicked(gtx) {
+			stepCount = sync
+			selectedGame = selector.buttonsList[i].game
+		}
+	}
+
+	if selector.scrollbar.scrollbar.Dragging() {
+		selector.list.ScrollBy(float32(len(selector.buttonsList)) * selector.scrollbar.scrollbar.ScrollDistance())
+	}
+
+	if len(selector.buttonsList) > 0 {
+		selector.scrollbar.start = float32(selector.list.Position.First) / float32(len(selector.buttonsList))
+		selector.scrollbar.end = selector.scrollbar.start + float32(selector.list.Position.Count)/float32(len(selector.buttonsList))
+	} else {
+		selector.scrollbar.start = 0
+		selector.scrollbar.end = 1
+	}
+
+	return selector.searchFlex.Layout(
 		gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return selector.searchBar.Layout(gtx, theme)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return selector.list.Layout(gtx, len(selector.buttonsList), func(gtx layout.Context, index int) layout.Dimensions {
-				return selector.buttonsList[index].Layout(gtx, theme)
-			})
+			return selector.scrollbarFlex.Layout(
+				gtx,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return selector.list.Layout(gtx, len(selector.buttonsList), func(gtx layout.Context, index int) layout.Dimensions {
+						return selector.buttonsList[index].Layout(gtx, theme)
+					})
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return selector.scrollbar.Layout(gtx, theme)
+				}),
+			)
+
 		}),
 	)
 }

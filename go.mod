@@ -20,6 +20,7 @@ require (
 )
 
 require (
+	github.com/andygrunwald/vdf v1.1.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/net v0.34.0 // indirect
 )

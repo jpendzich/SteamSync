@@ -30,6 +30,10 @@ type gameButton struct {
 	button widget.Clickable
 }
 
+type backButton struct {
+	button widget.Clickable
+}
+
 type gameSearchBar struct {
 	inset      layout.Inset
 	lastSearch string
@@ -120,9 +124,17 @@ func readGames() ([]string, error) {
 
 var (
 	access       internal.DbAccess
-	stepCount    step   = game
-	selectedGame string = ""
-	pSelector           = peerSelector{
+	stepCount    step        = game
+	selectedGame string      = ""
+	frame        layout.Flex = layout.Flex{
+		Axis:      layout.Vertical,
+		Alignment: layout.Middle,
+		Spacing:   layout.SpaceBetween,
+	}
+	backbutton backButton = backButton{
+		button: widget.Clickable{},
+	}
+	pSelector = peerSelector{
 		list: layout.List{
 			Axis:        layout.Vertical,
 			Alignment:   layout.Middle,
@@ -196,23 +208,43 @@ func run(window *app.Window) error {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
-			switch stepCount {
-			case peer:
-				var peers []network.Peer
-				select {
-				case peers = <-peerChan:
-					pSelector.buttonList = make([]peerButton, len(peers))
-					for i, p := range peers {
-						pSelector.buttonList[i].peer = p
+			frame.Layout(
+				gtx,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					var dimensions layout.Dimensions
+					switch stepCount {
+					case peer:
+						var peers []network.Peer
+						select {
+						case peers = <-peerChan:
+							pSelector.buttonList = make([]peerButton, len(peers))
+							for i, p := range peers {
+								pSelector.buttonList[i].peer = p
+							}
+						default:
+						}
+						dimensions = pSelector.Layout(gtx, theme)
+					case game:
+						dimensions = gSelector.Layout(gtx, theme)
+					case sync:
+						dimensions = sSelector.Layout(gtx, theme)
 					}
-				default:
-				}
-				pSelector.Layout(gtx, theme)
-			case game:
-				gSelector.Layout(gtx, theme)
-			case sync:
-				sSelector.Layout(gtx, theme)
-			}
+					return dimensions
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					if backbutton.Clicked(gtx) {
+						switch stepCount {
+						case peer:
+							stepCount = sync
+						case game:
+							stepCount = game
+						case sync:
+							stepCount = game
+						}
+					}
+					return backbutton.Layout(gtx, theme)
+				}),
+			)
 
 			e.Frame(gtx.Ops)
 		}
@@ -242,6 +274,14 @@ func (button *gameButton) Layout(gtx layout.Context, theme *material.Theme) layo
 }
 
 func (button *gameButton) Clicked(gtx layout.Context) bool {
+	return button.button.Clicked(gtx)
+}
+
+func (button *backButton) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	return material.Button(theme, &button.button, "back").Layout(gtx)
+}
+
+func (button *backButton) Clicked(gtx layout.Context) bool {
 	return button.button.Clicked(gtx)
 }
 

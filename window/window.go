@@ -31,6 +31,7 @@ type gameButton struct {
 }
 
 type backButton struct {
+	inset  layout.Inset
 	button widget.Clickable
 }
 
@@ -132,6 +133,9 @@ var (
 		Spacing:   layout.SpaceBetween,
 	}
 	backbutton backButton = backButton{
+		inset: layout.Inset{
+			Top: 5,
+		},
 		button: widget.Clickable{},
 	}
 	pSelector = peerSelector{
@@ -278,7 +282,9 @@ func (button *gameButton) Clicked(gtx layout.Context) bool {
 }
 
 func (button *backButton) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	return material.Button(theme, &button.button, "back").Layout(gtx)
+	return button.inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return material.Button(theme, &button.button, "back").Layout(gtx)
+	})
 }
 
 func (button *backButton) Clicked(gtx layout.Context) bool {

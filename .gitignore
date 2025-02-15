@@ -1,7 +1,4 @@
 *.exe
 *.dll
 *.settings
-./server
-./client
-server
-client
+SteamSync

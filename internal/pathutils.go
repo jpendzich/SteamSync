@@ -2,7 +2,9 @@ package internal
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // The paths in the Pcgamingwiki save game locations are often made up of environment variables or
@@ -29,51 +31,75 @@ var (
 	allEnvVars = map[string]bool{
 		"steam": true,
 		"uid":   true,
+		"game":  true,
 	}
 )
 
-func ConvertToRealPath(wikiPath string) (string, error) {
-	regex, err := regexp.Compile("{{p|.*?}}")
+func ConvertToRealPath(appId int, wikiPath string) (string, error) {
+	// match {{p|*}} or {{P|*}} and return * as capture group
+	regex, err := regexp.Compile("{{[p|P]\\|(.*?)}}")
 	if err != nil {
 		return "", err
 	}
 
-	newPath := replaceAllStringSubmatchFunc(regex, wikiPath, func(groups []string) string {
+	newPath, err := replaceAllStringSubmatchFunc(regex, wikiPath, func(groups []string) (string, error) {
 		replacedString := ""
-		if windowsEnvVars[groups[1]] {
-			replacedString = os.Getenv(groups[1])
-		} else if linuxEnvVars[groups[1]] {
-			switch groups[1] {
+		envVarAndPath := strings.SplitN(groups[1], "\\", 2)
+		if len(envVarAndPath) < 1 {
+			envVarAndPath = strings.SplitN(groups[1], "/", 2)
+		}
+		envVar := envVarAndPath[0]
+		restPath := ""
+		if len(envVarAndPath) > 1 {
+			restPath = envVarAndPath[1]
+		}
+
+		if windowsEnvVars[envVar] {
+			replacedString = filepath.Join(os.Getenv(envVar), restPath)
+		} else if linuxEnvVars[envVar] {
+			switch envVar {
 			case "home":
 				replacedString, err = os.UserHomeDir()
 				if err != nil {
-					// TODO: will be an invalid path
-					return groups[1]
+					return "", err
 				}
+				replacedString = filepath.Join(replacedString, restPath)
 			case "linuxhome":
 				replacedString, err = os.UserHomeDir()
 				if err != nil {
-					// TODO: will be an invalid path
-					return groups[1]
+					return "", err
 				}
-
+				replacedString = filepath.Join(replacedString, restPath)
 			}
-		} else if allEnvVars[groups[1]] {
-			switch groups[1] {
+		} else if allEnvVars[envVar] {
+			switch envVar {
 			case "steam":
-				// TODO: Steam install dir
+				replacedString, err = GetSteamInstallPath()
+				if err != nil {
+					return "", err
+				}
+				replacedString = filepath.Join(replacedString, restPath)
 			case "uid":
 				// TODO: Get the users steam id
+			case "game":
+				replacedString, err = GetGameInstallPath(appId)
+				if err != nil {
+					return "", err
+				}
+				replacedString = filepath.Join(replacedString, restPath)
 			}
 		}
-		return replacedString
+		return replacedString, nil
 	})
+	if err != nil {
+		return "", err
+	}
 
 	return newPath, nil
 }
 
 // copied from https://gist.github.com/elliotchance/d419395aa776d632d897 for convenience
-func replaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]string) string) string {
+func replaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]string) (string, error)) (string, error) {
 	result := ""
 	lastIndex := 0
 
@@ -82,10 +108,13 @@ func replaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]str
 		for i := 0; i < len(v); i += 2 {
 			groups = append(groups, str[v[i]:v[i+1]])
 		}
-
-		result += str[lastIndex:v[0]] + repl(groups)
+		replaced, err := repl(groups)
+		if err != nil {
+			return "", err
+		}
+		result += str[lastIndex:v[0]] + replaced
 		lastIndex = v[1]
 	}
 
-	return result + str[lastIndex:]
+	return result + str[lastIndex:], nil
 }

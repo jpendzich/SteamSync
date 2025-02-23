@@ -1,7 +1,6 @@
 package network
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -13,7 +12,6 @@ func (handler *DownloadFileHandler) Process(conn *Connection) error {
 	request := NewDownloadFileRequest()
 	response := NewDownloadFileResponse()
 	err := conn.ReadPacket(request)
-	log.Println(request)
 	if err != nil {
 		return err
 	}
@@ -23,7 +21,6 @@ func (handler *DownloadFileHandler) Process(conn *Connection) error {
 	}
 	defer file.Close()
 	response.ErrorCode = 0
-	log.Println(response)
 	err = conn.WritePacket(response)
 	if err != nil {
 		return err

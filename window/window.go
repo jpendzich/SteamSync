@@ -1,13 +1,17 @@
 package window
 
 import (
+	"image"
+	"image/color"
 	"log"
 	"os"
 	"path/filepath"
 
 	"gioui.org/app"
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/HackJack14/SteamSync/internal"
@@ -15,6 +19,7 @@ import (
 )
 
 var (
+	OnSelectedGame func(game string) error
 	OnSelectedPeer func(peer network.Peer)
 	OnUploadGame   func(game string) error
 	OnDownloadGame func(game string) error
@@ -47,6 +52,11 @@ type gameScrollBar struct {
 	end       float32
 }
 
+type gameLabel struct {
+	text    string
+	visible bool
+}
+
 type step = int
 
 const (
@@ -65,6 +75,7 @@ type gameSelector struct {
 	list          layout.List
 	scrollbar     gameScrollBar
 	searchBar     gameSearchBar
+	errorLabel    gameLabel
 	searchFlex    layout.Flex
 	scrollbarFlex layout.Flex
 }
@@ -164,6 +175,10 @@ var (
 				SingleLine: true,
 				Submit:     true,
 			},
+		},
+		errorLabel: gameLabel{
+			text:    "",
+			visible: false,
 		},
 		searchFlex: layout.Flex{
 			Axis:      layout.Vertical,
@@ -301,6 +316,35 @@ func (scrollBar *gameScrollBar) Layout(gtx layout.Context, theme *material.Theme
 	return material.Scrollbar(theme, &scrollBar.scrollbar).Layout(gtx, layout.Vertical, scrollBar.start, scrollBar.end)
 }
 
+func (label *gameLabel) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	if label.visible {
+		style := material.LabelStyle{
+			TextSize: 14,
+			Color: color.NRGBA{
+				R: 255,
+				G: 0,
+				B: 0,
+				A: 255,
+			},
+			Font:           font.Font{},
+			SelectionColor: color.NRGBA{},
+			Alignment:      text.Start,
+			MaxLines:       1,
+			WrapPolicy:     text.WrapWords,
+			Text:           label.text,
+			State:          &widget.Selectable{},
+			Shaper:         text.NewShaper(),
+		}
+		// return material.Label(theme, 14, label.text).Layout(gtx)
+		return style.Layout(gtx)
+	} else {
+		return layout.Dimensions{
+			Size:     image.Point{X: 0, Y: 0},
+			Baseline: 0,
+		}
+	}
+}
+
 func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	// only set lastSearch if edit.Text() changed
 	if selector.searchBar.lastSearch != selector.searchBar.edit.Text() {
@@ -316,8 +360,13 @@ func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) 
 	// check for clicked button
 	for i := 0; i < len(selector.buttonsList); i++ {
 		if selector.buttonsList[i].Clicked(gtx) {
-			stepCount = sync
+			// stepCount = sync
 			selectedGame = selector.buttonsList[i].game
+			err := OnSelectedGame(selectedGame)
+			if err != nil {
+				selector.errorLabel.text = "Could not find game"
+				selector.errorLabel.visible = true
+			}
 		}
 	}
 
@@ -337,6 +386,9 @@ func (selector *gameSelector) Layout(gtx layout.Context, theme *material.Theme) 
 		gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return selector.searchBar.Layout(gtx, theme)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return selector.errorLabel.Layout(gtx, theme)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return selector.scrollbarFlex.Layout(

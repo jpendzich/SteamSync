@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
 
+	"github.com/HackJack14/SteamSync/internal"
 	"github.com/HackJack14/SteamSync/network"
 	"github.com/HackJack14/SteamSync/window"
 )
@@ -18,6 +20,7 @@ func main() {
 	window.OnDownloadGame = DownloadGame
 	window.OnUploadGame = UploadGame
 	window.OnSelectedPeer = SelectedPeer
+	window.OnSelectedGame = SelectedGame
 	window.RenderWindow()
 }
 
@@ -86,4 +89,26 @@ func HandleNewConnections() {
 			log.Fatalln(err)
 		}
 	}
+}
+
+func SelectedGame(game string) error {
+	access := internal.NewDbAccess()
+	defer access.Close()
+
+	log.Println(game)
+	save := access.GetSaveEntryByName(game)
+	log.Println(save.Game)
+	saveLocations := make(map[string]interface{})
+	err := json.Unmarshal([]byte(save.SaveLocation), &saveLocations)
+	saveLocation := saveLocations["Windows"].(string)
+	fullSaveLocation, err := internal.ConvertToRealPath(save.AppId, saveLocation)
+	if err != nil {
+		return err
+	}
+	_, err = os.Stat(fullSaveLocation)
+	if err != nil {
+		return err
+	}
+	log.Println(fullSaveLocation)
+	return nil
 }

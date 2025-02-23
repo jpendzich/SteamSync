@@ -2,7 +2,6 @@ package network
 
 import (
 	"io"
-	"log"
 )
 
 type RequestSender struct {
@@ -47,7 +46,6 @@ func (sender *RequestSender) SendRequestWriteBinary(packetType uint, request int
 
 func (sender *RequestSender) SendRequestReadBinary(packetType uint, request interface{}, response interface{}, binary io.Writer) error {
 	sender.conn.WritePacketType(packetType)
-	log.Println(request)
 	err := sender.conn.WritePacket(request)
 	if err != nil {
 		return err

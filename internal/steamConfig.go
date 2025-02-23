@@ -3,11 +3,12 @@ package internal
 import (
 	"errors"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 
 	"github.com/andygrunwald/vdf"
+	"golang.org/x/sys/windows/registry"
 )
 
 const (
@@ -17,26 +18,38 @@ const (
 	appManifestSuffix = ".acf"
 )
 
-func GetGameInstallPath(appId int) (string, error) {
+func GetSteamInstallPath() (string, error) {
 	sys := runtime.GOOS
 
-	var (
-		libraryfolders *os.File
-		err            error
-	)
+	installPath := ""
 	switch sys {
 	case "windows":
+		key, err := registry.OpenKey(registry.CURRENT_USER, "Software\\Valve\\Steam", registry.QUERY_VALUE)
+		if err != nil {
+			return "", err
+		}
+		defer key.Close()
 
+		installPath, _, err = key.GetStringValue("SteamPath")
+		if err != nil {
+			return "", err
+		}
 	case "linux":
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		libraryfolders, err = os.Open(path.Join(home, ".local/share/Steam/steamapps/libraryfolders.vdf"))
-		if err != nil {
-			return "", err
-		}
+		installPath = filepath.Join(home, ".local/share/Steam/")
 	}
+	return installPath, nil
+}
+
+func GetGameInstallPath(appId int) (string, error) {
+	steamInstallPath, err := GetSteamInstallPath()
+	if err != nil {
+		return "", err
+	}
+	libraryfolders, err := os.Open(filepath.Join(steamInstallPath, steamApps, "libraryfolders.vdf"))
 	parser := vdf.NewParser(libraryfolders)
 	content, err := parser.Parse()
 	if err != nil {
@@ -49,7 +62,7 @@ func GetGameInstallPath(appId int) (string, error) {
 	}
 
 	appManifestName := appManifestPrefix + strconv.Itoa(appId) + appManifestSuffix
-	appManifest, err := os.Open(path.Join(libraryPath, steamApps, appManifestName))
+	appManifest, err := os.Open(filepath.Join(libraryPath, steamApps, appManifestName))
 	parser = vdf.NewParser(appManifest)
 	content, err = parser.Parse()
 	if err != nil {
@@ -60,7 +73,7 @@ func GetGameInstallPath(appId int) (string, error) {
 		return "", err
 	}
 
-	installPath := path.Join(libraryPath, steamApps, common, installDir)
+	installPath := filepath.Join(libraryPath, steamApps, common, installDir)
 
 	return installPath, nil
 }

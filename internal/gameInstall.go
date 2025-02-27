@@ -4,11 +4,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 
 	"github.com/andygrunwald/vdf"
-	"golang.org/x/sys/windows/registry"
 )
 
 const (
@@ -17,32 +15,6 @@ const (
 	appManifestPrefix = "appmanifest_"
 	appManifestSuffix = ".acf"
 )
-
-func GetSteamInstallPath() (string, error) {
-	sys := runtime.GOOS
-
-	installPath := ""
-	switch sys {
-	case "windows":
-		key, err := registry.OpenKey(registry.CURRENT_USER, "Software\\Valve\\Steam", registry.QUERY_VALUE)
-		if err != nil {
-			return "", err
-		}
-		defer key.Close()
-
-		installPath, _, err = key.GetStringValue("SteamPath")
-		if err != nil {
-			return "", err
-		}
-	case "linux":
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		installPath = filepath.Join(home, ".local/share/Steam/")
-	}
-	return installPath, nil
-}
 
 func GetGameInstallPath(appId int) (string, error) {
 	steamInstallPath, err := GetSteamInstallPath()

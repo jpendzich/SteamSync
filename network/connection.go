@@ -1,5 +1,5 @@
 package network
-
+ 
 import (
 	"io"
 	"net"

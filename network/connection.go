@@ -25,7 +25,7 @@ func (conn *Connection) WritePacketType(command uint) {
 	conn.encoder.WriteUint32(uint32(command))
 }
 
-func (conn *Connection) WritePacket(packet interface{}) error {
+func (conn *Connection) WritePacket(packet any) error {
 	err := conn.encoder.Encode(packet)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (conn *Connection) ReadPacketType() (uint, error) {
 	return uint(command), nil
 }
 
-func (conn *Connection) ReadPacket(packet interface{}) error {
+func (conn *Connection) ReadPacket(packet any) error {
 	err := conn.decoder.Decode(packet)
 	if err != nil {
 		return err

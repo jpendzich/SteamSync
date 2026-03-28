@@ -27,7 +27,7 @@ func GetGameInstallPath(appId int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	libraries := content["libraryfolders"].(map[string]interface{})
+	libraries := content["libraryfolders"].(map[string]any)
 	libraryPath, err := findLibrary(appId, libraries)
 	if err != nil {
 		return "", err
@@ -40,7 +40,7 @@ func GetGameInstallPath(appId int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	installDir, err := findInstallDir(content["AppState"].(map[string]interface{}))
+	installDir, err := findInstallDir(content["AppState"].(map[string]any))
 	if err != nil {
 		return "", err
 	}
@@ -50,23 +50,23 @@ func GetGameInstallPath(appId int) (string, error) {
 	return installPath, nil
 }
 
-func findLibrary(appId int, libraries map[string]interface{}) (string, error) {
+func findLibrary(appId int, libraries map[string]any) (string, error) {
 	for _, library := range libraries {
-		apps := library.(map[string]interface{})["apps"].(map[string]interface{})
+		apps := library.(map[string]any)["apps"].(map[string]any)
 		for app := range apps {
 			appAsInt, err := strconv.Atoi(app)
 			if err != nil {
 				return "", err
 			}
 			if appAsInt == appId {
-				return library.(map[string]interface{})["path"].(string), nil
+				return library.(map[string]any)["path"].(string), nil
 			}
 		}
 	}
 	return "", nil
 }
 
-func findInstallDir(appState map[string]interface{}) (string, error) {
+func findInstallDir(appState map[string]any) (string, error) {
 	installdir, ok := appState["installdir"].(string)
 	if ok {
 		return installdir, nil

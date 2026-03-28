@@ -14,7 +14,7 @@ func NewRequestSender(conn *Connection) *RequestSender {
 	}
 }
 
-func (sender *RequestSender) SendRequest(packetType uint, request interface{}, response interface{}) error {
+func (sender *RequestSender) SendRequest(packetType uint, request any, response any) error {
 	sender.conn.WritePacketType(packetType)
 	err := sender.conn.WritePacket(request)
 	if err != nil {
@@ -27,7 +27,7 @@ func (sender *RequestSender) SendRequest(packetType uint, request interface{}, r
 	return nil
 }
 
-func (sender *RequestSender) SendRequestWriteBinary(packetType uint, request interface{}, response interface{}, binary io.Reader, size uint64) error {
+func (sender *RequestSender) SendRequestWriteBinary(packetType uint, request any, response any, binary io.Reader, size uint64) error {
 	sender.conn.WritePacketType(packetType)
 	err := sender.conn.WritePacket(request)
 	if err != nil {
@@ -44,7 +44,7 @@ func (sender *RequestSender) SendRequestWriteBinary(packetType uint, request int
 	return nil
 }
 
-func (sender *RequestSender) SendRequestReadBinary(packetType uint, request interface{}, response interface{}, binary io.Writer) error {
+func (sender *RequestSender) SendRequestReadBinary(packetType uint, request any, response any, binary io.Writer) error {
 	sender.conn.WritePacketType(packetType)
 	err := sender.conn.WritePacket(request)
 	if err != nil {

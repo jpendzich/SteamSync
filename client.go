@@ -98,7 +98,7 @@ func SelectedGame(game string) error {
 	log.Println(game)
 	save := access.GetSaveEntryByName(game)
 	log.Println(save.Game)
-	saveLocations := make(map[string]interface{})
+	saveLocations := make(map[string]any)
 	err := json.Unmarshal([]byte(save.SaveLocation), &saveLocations)
 	saveLocation := saveLocations["Windows"].(string)
 	fullSaveLocation, err := internal.ConvertToRealPath(save.AppId, saveLocation)

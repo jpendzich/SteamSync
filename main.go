@@ -36,13 +36,13 @@ func main() {
 	}
 	log.Println("Read manifest")
 
-	for k, _ := range manifest {
+	for k := range manifest {
 		games = append(games, k)
 	}
 	slices.Sort(games)
 	log.Println("Built game list")
 
-	http.HandleFunc("/api/getGames", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/games", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		search := query.Get("search")
 		results := make([]string, 0, 100)
@@ -68,6 +68,23 @@ func main() {
 			panic(err)
 		}
 		w.Write(manifestJson)
+	})
+
+	http.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("game")
+		query := r.URL.Query()
+		name := query.Get("name")
+		log.Println(name)
+		if game, ok := manifest[name]; ok {
+			gameJson, err := json.Marshal(game)
+			if err != nil {
+				panic(err)
+			}
+			w.Write(gameJson)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+
 	})
 
 	log.Fatalln(http.ListenAndServe(":8070", nil))

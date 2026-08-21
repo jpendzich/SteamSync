@@ -1,28 +1,20 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/jpendzich/SteamSync/handler"
 )
 
 func main() {
-	exe, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
+	http.Handle("/", handler.NewStaticHandler())
 
-	exePath := filepath.Dir(exe)
-
-	http.Handle("/", http.FileServer(http.Dir(filepath.Join(exePath, "static"))))
-
-	manifestFile, err := os.ReadFile(filepath.Join(exePath, "static/manifest/manifest.yaml"))
+	manifestFile, err := os.ReadFile(filepath.Join(handler.GetExecutableDir(), "dynamic/manifest/manifest.yaml"))
 	if err != nil {
 		panic(err)
 	}
@@ -42,50 +34,9 @@ func main() {
 	slices.Sort(games)
 	log.Println("Built game list")
 
-	http.HandleFunc("/api/games", func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		search := query.Get("search")
-		results := make([]string, 0, 100)
-		var manifestJson []byte
-		if search != "" {
-			gamesFound := 0
-			for _, game := range games {
-				if gamesFound > 100 {
-					break
-				}
+	http.Handle("/api/games", handler.NewApiGamesHandler(games))
 
-				if strings.Contains(game, search) {
-					gamesFound++
-					results = append(results, game)
-				}
-			}
-		} else {
-			results = append(results, games[:100]...)
-		}
-
-		manifestJson, err = json.Marshal(results)
-		if err != nil {
-			panic(err)
-		}
-		w.Write(manifestJson)
-	})
-
-	http.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("game")
-		query := r.URL.Query()
-		name := query.Get("name")
-		log.Println(name)
-		if game, ok := manifest[name]; ok {
-			gameJson, err := json.Marshal(game)
-			if err != nil {
-				panic(err)
-			}
-			w.Write(gameJson)
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-
-	})
+	http.Handle("/api/game", handler.NewApiGameHandler(manifest))
 
 	log.Fatalln(http.ListenAndServe(":8070", nil))
 }

@@ -4,5 +4,6 @@
             go
             gopls
             typescript-language-server
+            vscode-langservers-extracted
         ];
 }

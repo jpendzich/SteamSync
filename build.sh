@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 SCRIPT_DIR="$(dirname "$(realpath $0)")"
 BUILD_DIR="$SCRIPT_DIR/build"

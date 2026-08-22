@@ -12,8 +12,7 @@ function displayGame(game) {
     var listElement = document.createElement("li");
     listElement.textContent = game;
     listElement.addEventListener("click", () => {
-        let url = new URL("/api/game", window.location.origin)
-        url.searchParams.append("name", listElement.innerText)
+        let url = new URL("/game/" + game, window.location.origin)
         window.location.href = url.toString()
     })
     list.appendChild(listElement);

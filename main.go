@@ -38,5 +38,7 @@ func main() {
 
 	http.Handle("/api/game", handler.NewApiGameHandler(manifest))
 
+	http.Handle("/game/{name}", handler.NewGameHandler())
+
 	log.Fatalln(http.ListenAndServe(":8070", nil))
 }
